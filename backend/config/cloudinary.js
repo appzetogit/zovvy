@@ -1,6 +1,5 @@
 import { v2 as cloudinary } from 'cloudinary';
-import multerStorageCloudinary from 'multer-storage-cloudinary';
-const { CloudinaryStorage } = multerStorageCloudinary;
+import createCloudinaryStorage from 'multer-storage-cloudinary';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -11,8 +10,8 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
+const storage = createCloudinaryStorage({
+  cloudinary,
   params: {
     folder: 'farmlyf_banners',
     allowed_formats: ['jpg', 'png', 'jpeg', 'webp', 'avif'],
