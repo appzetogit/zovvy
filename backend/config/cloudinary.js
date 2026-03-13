@@ -1,5 +1,6 @@
 import { v2 as cloudinary } from 'cloudinary';
-import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import multerStorageCloudinary from 'multer-storage-cloudinary';
+const { CloudinaryStorage } = multerStorageCloudinary;
 import dotenv from 'dotenv';
 
 dotenv.config();
