@@ -46,10 +46,8 @@ const parseOrigins = (value) =>
 const allowedOrigins = new Set([
   'http://localhost:5173',
   'http://127.0.0.1:5173',
-  'https://farmlyf.in',
-  'https://www.farmlyf.in',
-  'http://farmlyf.in',
-  'http://www.farmlyf.in',
+  'https://zovvyfoods.com',
+  'https://www.zovvyfoods.com',
   process.env.FRONTEND_URL,
   ...parseOrigins(process.env.FRONTEND_URLS)
 ].filter(Boolean));
