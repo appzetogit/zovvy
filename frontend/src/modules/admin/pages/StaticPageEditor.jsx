@@ -1,18 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, RotateCcw, Globe, Eye, ImageIcon, Type, Upload } from 'lucide-react';
+import { ArrowLeft, Save, RotateCcw, Globe, Eye } from 'lucide-react';
 import ReactQuill, { Quill } from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import BlotFormatter from 'quill-blot-formatter';
 import toast from 'react-hot-toast';
-
-if (typeof window !== 'undefined' && Quill) {
-    Quill.register('modules/blotFormatter', BlotFormatter);
-}
-
 import { useWebsiteContent, useUpdateWebsiteContent } from '../../../hooks/useContent';
 import { useUploadImage } from '../../../hooks/useProducts';
 import { PAGES_CONFIG } from '../../../config/pagesConfig';
+
+const SIZE_WHITELIST = ['12px', '14px', '16px', '18px', '24px', '32px', '42px'];
+
+if (typeof window !== 'undefined' && Quill) {
+    const SizeStyle = Quill.import('attributors/style/size');
+    SizeStyle.whitelist = SIZE_WHITELIST;
+    Quill.register(SizeStyle, true);
+    Quill.register('modules/blotFormatter', BlotFormatter);
+}
 
 const StaticPageEditor = () => {
     const { pageId } = useParams();
@@ -22,6 +26,7 @@ const StaticPageEditor = () => {
     const { data: pageData, isLoading: loading } = useWebsiteContent(pageId);
     const updateMutation = useUpdateWebsiteContent(pageId);
     const uploadMutation = useUploadImage();
+    const quillRef = useRef(null);
 
     const [content, setContent] = useState('');
     const [title, setTitle] = useState('');
@@ -86,18 +91,67 @@ const StaticPageEditor = () => {
         }
     };
 
+    const handleEditorImageUpload = () => {
+        const input = document.createElement('input');
+        input.setAttribute('type', 'file');
+        input.setAttribute('accept', 'image/*');
+
+        input.onchange = async () => {
+            const file = input.files?.[0];
+            if (!file) return;
+
+            try {
+                const uploaded = await uploadMutation.mutateAsync(file);
+                const editor = quillRef.current?.getEditor();
+                if (!editor) return;
+
+                const range = editor.getSelection(true);
+                const insertAt = range?.index ?? editor.getLength();
+                editor.insertEmbed(insertAt, 'image', uploaded.url, 'user');
+                editor.setSelection(insertAt + 1, 0);
+            } catch (error) {
+                console.error('StaticPageEditor: image upload failed', error);
+            }
+        };
+
+        input.click();
+    };
+
     // Quill Modules Configuration
     const modules = {
-        toolbar: [
-            [{ 'header': [1, 2, 3, false] }],
-            ['bold', 'italic', 'underline', 'strike'],
-            [{ 'color': [] }, { 'background': [] }],
-            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-            [{ 'align': [] }],
-            ['link', 'image', 'clean']
-        ],
+        toolbar: {
+            container: [
+                [{ header: [1, 2, 3, 4, false] }],
+                [{ size: SIZE_WHITELIST }],
+                ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+                [{ color: [] }, { background: [] }],
+                [{ list: 'ordered' }, { list: 'bullet' }],
+                [{ align: [] }, { indent: '-1' }, { indent: '+1' }],
+                ['link', 'image', 'clean']
+            ],
+            handlers: {
+                image: handleEditorImageUpload
+            }
+        },
         blotFormatter: {}
     };
+    const formats = [
+        'header',
+        'size',
+        'bold',
+        'italic',
+        'underline',
+        'strike',
+        'blockquote',
+        'color',
+        'background',
+        'list',
+        'bullet',
+        'align',
+        'indent',
+        'link',
+        'image'
+    ];
 
     if (loading || !pageConfig) return <div>Loading...</div>;
 
@@ -167,12 +221,14 @@ const StaticPageEditor = () => {
             <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden p-1">
                 <div className="h-[600px] flex flex-col">
                     <ReactQuill
+                        ref={quillRef}
                         theme="snow"
                         value={content}
                         onChange={setContent}
                         placeholder={`Start writing content for ${pageConfig.title}...`}
                         className="h-full"
                         modules={modules}
+                        formats={formats}
                     />
                 </div>
             </div>
@@ -186,6 +242,58 @@ const StaticPageEditor = () => {
                     This content will be directly rendered on the website at <b>/pages/{pageId}</b>.
                 </p>
             </div>
+
+            <style>{`
+                .ql-toolbar {
+                    border-top-left-radius: 1.5rem !important;
+                    border-top-right-radius: 1.5rem !important;
+                    border-color: #e5e7eb !important;
+                    padding: 14px 16px !important;
+                    background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+                }
+                .ql-container {
+                    border-bottom-left-radius: 1.5rem !important;
+                    border-bottom-right-radius: 1.5rem !important;
+                    border-color: #e5e7eb !important;
+                    font-size: 1rem;
+                }
+                .ql-editor {
+                    min-height: 520px;
+                    padding: 24px;
+                    color: #1f2937;
+                    line-height: 1.8;
+                }
+                .ql-editor h1 {
+                    font-size: 2.5rem;
+                    line-height: 1.1;
+                    font-weight: 800;
+                }
+                .ql-editor h2 {
+                    font-size: 2rem;
+                    line-height: 1.2;
+                    font-weight: 800;
+                }
+                .ql-editor h3 {
+                    font-size: 1.5rem;
+                    line-height: 1.3;
+                    font-weight: 700;
+                }
+                .ql-editor h4 {
+                    font-size: 1.25rem;
+                    line-height: 1.35;
+                    font-weight: 700;
+                }
+                .ql-editor blockquote {
+                    border-left: 4px solid #00A952;
+                    margin: 1.25rem 0;
+                    padding-left: 1rem;
+                    color: #4b5563;
+                }
+                .ql-editor.ql-blank::before {
+                    color: #9ca3af;
+                    font-style: normal;
+                }
+            `}</style>
         </div>
     );
 };

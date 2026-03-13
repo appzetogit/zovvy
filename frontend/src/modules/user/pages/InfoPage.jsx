@@ -114,7 +114,7 @@ const InfoPage = ({ type }) => {
     // content can be a string (HTML from Quill) or fallback JSX
     const displayContent = pageData?.content ? (
         <div
-            className="prose prose-sm md:prose-base max-w-none text-gray-600 leading-relaxed quill-content w-full break-words"
+            className="quill-content w-full break-words text-gray-600"
             dangerouslySetInnerHTML={{ __html: pageData.content }}
         />
     ) : config.content;
@@ -137,13 +137,119 @@ const InfoPage = ({ type }) => {
             </motion.div>
 
             <style>{`
+                .quill-content {
+                    font-size: 1rem;
+                    line-height: 1.85;
+                }
+                .quill-content h1,
+                .quill-content h2,
+                .quill-content h3,
+                .quill-content h4 {
+                    color: #0f172a;
+                    font-weight: 800;
+                    letter-spacing: -0.03em;
+                    margin: 0 0 1rem;
+                }
+                .quill-content h1 {
+                    font-size: clamp(2.25rem, 5vw, 4rem);
+                    line-height: 1.05;
+                }
+                .quill-content h2 {
+                    font-size: clamp(1.75rem, 4vw, 3rem);
+                    line-height: 1.12;
+                }
+                .quill-content h3 {
+                    font-size: clamp(1.35rem, 3vw, 2.1rem);
+                    line-height: 1.2;
+                }
+                .quill-content h4 {
+                    font-size: clamp(1.1rem, 2vw, 1.5rem);
+                    line-height: 1.3;
+                }
+                .quill-content p,
+                .quill-content li,
+                .quill-content blockquote {
+                    color: #4b5563;
+                    margin: 0 0 1rem;
+                }
+                .quill-content ul,
+                .quill-content ol {
+                    margin: 0 0 1.25rem;
+                    padding-left: 1.75rem;
+                }
+                .quill-content ol {
+                    list-style-type: decimal;
+                    list-style-position: outside;
+                }
+                .quill-content ul {
+                    list-style-type: disc;
+                    list-style-position: outside;
+                }
+                .quill-content li {
+                    display: list-item;
+                    padding-left: 0.25rem;
+                }
+                .quill-content li + li {
+                    margin-top: 0.5rem;
+                }
+                .quill-content li::marker {
+                    color: #0f172a;
+                    font-weight: 700;
+                }
+                .quill-content blockquote {
+                    border-left: 4px solid #00A952;
+                    padding-left: 1rem;
+                    font-style: italic;
+                }
+                .quill-content a {
+                    color: #2563eb;
+                    text-decoration: underline;
+                }
                 .quill-content img {
                     max-width: 100%;
                     height: auto;
                     border-radius: 1rem;
+                    margin: 1.5rem 0;
                 }
                 .quill-content iframe {
                     max-width: 100%;
+                }
+                .quill-content .ql-align-center {
+                    text-align: center;
+                }
+                .quill-content .ql-align-right {
+                    text-align: right;
+                }
+                .quill-content .ql-align-justify {
+                    text-align: justify;
+                }
+                .quill-content .ql-indent-1 {
+                    padding-left: 3em;
+                }
+                .quill-content .ql-indent-2 {
+                    padding-left: 6em;
+                }
+                .quill-content .ql-indent-3 {
+                    padding-left: 9em;
+                }
+                .quill-content .ql-indent-4 {
+                    padding-left: 12em;
+                }
+                .quill-content ol .ql-indent-1,
+                .quill-content ul .ql-indent-1 {
+                    margin-left: 1.5rem;
+                }
+                .quill-content ol .ql-indent-2,
+                .quill-content ul .ql-indent-2 {
+                    margin-left: 3rem;
+                }
+                .quill-content ol .ql-indent-3,
+                .quill-content ul .ql-indent-3 {
+                    margin-left: 4.5rem;
+                }
+                .quill-content ol .ql-indent-4,
+                .quill-content ul .ql-indent-4 {
+                    margin-left: 6rem;
                 }
                 .quill-content p, .quill-content span, .quill-content div {
                     overflow-wrap: break-word;
