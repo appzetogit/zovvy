@@ -5,8 +5,8 @@ import { useAuth } from '../../../context/AuthContext';
 import { API_BASE_URL } from '@/lib/apiUrl';
 
 const FloatingContact = () => {
-    const phoneNumber = "919000000000"; // Replace with actual number
-    const message = "Hi FarmLyf, I have a query about your products!";
+    const phoneNumber = "919692697400";
+    const message = "Hi zovvy, I have a query about your products!";
 
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
     const API_URL = API_BASE_URL;
