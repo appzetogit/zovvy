@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import bcrypt from 'bcryptjs';
 import User from './models/User.js';
 import Product from './models/Product.js';
 import Order from './models/Order.js';
@@ -10,6 +11,10 @@ import Category from './models/Category.js';
 import SubCategory from './models/SubCategory.js';
 
 dotenv.config();
+
+const DEFAULT_ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@farmlyf.com';
+const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
+const DEFAULT_ADMIN_NAME = process.env.ADMIN_NAME || 'Admin User';
 
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/farmlyf')
     .then(() => console.log('MongoDB Connected for Seeding'))
@@ -143,6 +148,16 @@ const seedData = async () => {
         
         await Coupon.insertMany(coupons);
         console.log('Coupons Seeded');
+
+        // --- ADMIN ---
+        const hashedAdminPassword = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 10);
+        await Admin.create({
+            email: DEFAULT_ADMIN_EMAIL,
+            password: hashedAdminPassword,
+            name: DEFAULT_ADMIN_NAME,
+            role: 'Admin'
+        });
+        console.log('Admin Seeded');
 
 
 
