@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     ArrowLeft,
     Plus,
     Trash2,
-    Save,
     Truck,
     Wallet,
     ShieldCheck,
@@ -15,8 +14,7 @@ import {
     Heart,
     Zap,
     CheckCircle2,
-    Edit2,
-    GripVertical
+    Edit2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -39,10 +37,28 @@ import { useTrustSignals, useAddTrustSignal, useUpdateTrustSignal, useDeleteTrus
 const WhyChooseUsPage = () => {
     const navigate = useNavigate();
     const { data: features = [], isLoading: loading } = useTrustSignals();
+    const addSignalMutation = useAddTrustSignal();
     const updateSignalMutation = useUpdateTrustSignal();
+    const deleteSignalMutation = useDeleteTrustSignal();
 
     const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState(null); // { id, icon, topText, bottomText }
+
+    const handleAdd = () => {
+        if (features.length >= 4) {
+            toast.error('You can manage up to 4 trust signals here');
+            return;
+        }
+
+        setEditForm({
+            icon: 'Star',
+            topText: '',
+            bottomText: '',
+            order: features.length,
+            isActive: true
+        });
+        setIsEditing(true);
+    };
 
     const handleEdit = (feature) => {
         setEditForm({ ...feature });
@@ -57,18 +73,29 @@ const WhyChooseUsPage = () => {
 
         try {
             if (editForm._id || editForm.id) {
-                // Edit existing
                 await updateSignalMutation.mutateAsync({
                     id: editForm._id || editForm.id,
                     data: editForm
                 });
+            } else {
+                await addSignalMutation.mutateAsync(editForm);
             }
             setIsEditing(false);
             setEditForm(null);
         } catch (error) { }
     };
 
-    const SelectedIcon = editForm ? ICON_OPTIONS[editForm.icon] : null;
+    const handleDelete = async (feature) => {
+        const id = feature._id || feature.id;
+        if (!id) return;
+
+        try {
+            await deleteSignalMutation.mutateAsync(id);
+        } catch (error) { }
+    };
+
+    const isSaving = addSignalMutation.isPending || updateSignalMutation.isPending;
+    const isDeleting = deleteSignalMutation.isPending;
 
     return (
         <div className="space-y-8 font-['Inter'] pb-32">
@@ -86,6 +113,14 @@ const WhyChooseUsPage = () => {
                         <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-[0.2em]">Manage trust signals on homepage</p>
                     </div>
                 </div>
+                <button
+                    onClick={handleAdd}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primaryDeep disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={features.length >= 4}
+                >
+                    <Plus size={18} />
+                    Add Feature
+                </button>
             </div>
 
             {/* Live Preview Section */}
@@ -97,11 +132,22 @@ const WhyChooseUsPage = () => {
 
                 {/* The Preview Component replicating the dark blue bar */}
                 <div className="w-full bg-[#0F172A] rounded-2xl p-8 shadow-xl">
-                    <div className="flex flex-wrap items-center justify-center divide-x divide-gray-700/50">
-                        {features.slice(0, 4).map((feature) => {
+                    <div className="flex flex-wrap items-center justify-center divide-x divide-gray-700/50 min-h-[164px]">
+                        {loading ? (
+                            <div className="py-10 text-center text-sm font-semibold text-gray-400">
+                                Loading trust signals...
+                            </div>
+                        ) : features.length === 0 ? (
+                            <div className="py-10 text-center">
+                                <p className="text-sm font-bold text-white">No trust signals added yet</p>
+                                <p className="mt-2 text-xs uppercase tracking-[0.2em] text-gray-400">
+                                    Add up to 4 features to show them here and on the homepage
+                                </p>
+                            </div>
+                        ) : features.slice(0, 4).map((feature) => {
                             const IconComponent = ICON_OPTIONS[feature.icon] || Star;
                             return (
-                                <div key={feature.id} className="flex-1 min-w-[200px] px-6 py-4 flex flex-col items-center text-center gap-3 group cursor-default">
+                                <div key={feature._id || feature.id} className="flex-1 min-w-[200px] px-6 py-4 flex flex-col items-center text-center gap-3 group cursor-default">
                                     <div className="relative">
                                         <IconComponent size={32} className="text-white stroke-1" />
                                         <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-[#0F172A]"></span>
@@ -122,13 +168,20 @@ const WhyChooseUsPage = () => {
                 {features.slice(0, 4).map((feature) => {
                     const IconComponent = ICON_OPTIONS[feature.icon] || Star;
                     return (
-                        <div key={feature.id} className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:shadow-md transition-all group relative">
+                        <div key={feature._id || feature.id} className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:shadow-md transition-all group relative">
                             <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button
                                     onClick={() => handleEdit(feature)}
                                     className="p-1.5 text-gray-400 hover:text-primary hover:bg-gray-50 rounded-lg transition-all"
                                 >
                                     <Edit2 size={16} />
+                                </button>
+                                <button
+                                    onClick={() => handleDelete(feature)}
+                                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                    disabled={isDeleting}
+                                >
+                                    <Trash2 size={16} />
                                 </button>
                             </div>
 
@@ -146,12 +199,28 @@ const WhyChooseUsPage = () => {
                 })}
             </div>
 
+            {!loading && features.length === 0 && (
+                <div className="rounded-3xl border border-dashed border-gray-200 bg-white px-6 py-12 text-center shadow-sm">
+                    <h3 className="text-lg font-black text-gray-900">No features found</h3>
+                    <p className="mt-2 text-sm font-medium text-gray-500">
+                        Create your first trust signal to make this section visible on the homepage.
+                    </p>
+                    <button
+                        onClick={handleAdd}
+                        className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primaryDeep"
+                    >
+                        <Plus size={18} />
+                        Add First Feature
+                    </button>
+                </div>
+            )}
+
             {/* Edit Modal / Form Overlay */}
             {isEditing && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-200">
                         <h2 className="text-lg font-black text-gray-900 uppercase tracking-tight mb-6">
-                            {editForm.id && features.find(f => f.id === editForm.id) ? 'Edit Feature' : 'Add New Feature'}
+                            {(editForm._id || editForm.id) ? 'Edit Feature' : 'Add New Feature'}
                         </h2>
 
                         <div className="space-y-4">
@@ -211,9 +280,10 @@ const WhyChooseUsPage = () => {
                             </button>
                             <button
                                 onClick={handleSaveForm}
-                                className="flex-1 py-3 rounded-xl bg-primary text-white font-bold hover:bg-primaryDeep shadow-lg shadow-primary/20 transition-all text-sm"
+                                disabled={isSaving}
+                                className="flex-1 py-3 rounded-xl bg-primary text-white font-bold hover:bg-primaryDeep shadow-lg shadow-primary/20 transition-all text-sm disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                Save Changes
+                                {isSaving ? 'Saving...' : 'Save Changes'}
                             </button>
                         </div>
                     </div>
