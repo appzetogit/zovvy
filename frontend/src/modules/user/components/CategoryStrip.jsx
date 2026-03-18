@@ -1,5 +1,5 @@
 
-import React, { useRef } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -50,8 +50,24 @@ const CategoryStrip = () => {
     const scrollRef = useRef(null);
     const navigate = useNavigate();
 
-    // Filter categories that are marked to show in the shop strip
-    const displayCategories = categories.filter(c => c.showInShopByCategory && c.status === 'Active');
+    // Show only active strip categories and keep them in creation order:
+    // first created appears first, newer categories are appended later.
+    const displayCategories = useMemo(() => {
+        return categories
+            .map((category, index) => ({ category, index }))
+            .filter(({ category }) => category.showInShopByCategory && category.status === 'Active')
+            .sort((a, b) => {
+                const aTime = a.category.createdAt ? new Date(a.category.createdAt).getTime() : Number.MAX_SAFE_INTEGER;
+                const bTime = b.category.createdAt ? new Date(b.category.createdAt).getTime() : Number.MAX_SAFE_INTEGER;
+
+                if (aTime !== bTime) {
+                    return aTime - bTime;
+                }
+
+                return a.index - b.index;
+            })
+            .map(({ category }) => category);
+    }, [categories]);
 
     const scroll = (direction) => {
         if (scrollRef.current) {

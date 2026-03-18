@@ -7,9 +7,16 @@ import asyncHandler from 'express-async-handler';
 import { sendOTP, verifyOTP } from '../utils/smsService.js';
 
 const normalizePhone = (phone = '') => String(phone).replace(/\D/g, '').slice(-10);
+<<<<<<< HEAD
 const DEFAULT_ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'biotatwaindia@gmail.com';
 const DEFAULT_ADMIN_NAME = process.env.ADMIN_NAME || 'Super Admin';
 const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'BIPL$Secure2026';
+=======
+
+const getDefaultAdminEmail = () => process.env.ADMIN_EMAIL || 'admin@farmlyf.com';
+const getDefaultAdminName = () => process.env.ADMIN_NAME || 'Super Admin';
+const getDefaultAdminPassword = () => process.env.ADMIN_PASSWORD || 'admin';
+>>>>>>> 5b2e0b83b70c256940147bf4628eda19205fbbc9
 
 const escapeRegExp = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -30,6 +37,17 @@ const getJwtCookieOptions = () => ({
   sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   maxAge: 30 * 24 * 60 * 60 * 1000,
 });
+
+const buildSeededAdmin = async () => {
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(getDefaultAdminPassword(), salt);
+
+  return new Admin({
+    email: getDefaultAdminEmail(),
+    name: getDefaultAdminName(),
+    password: hashedPassword
+  });
+};
 
 // @desc    Register new user
 // @route   POST /api/users
@@ -87,11 +105,15 @@ export const registerUser = async (req, res) => {
 // @route   POST /api/users/login
 // @access  Public
 export const loginUser = async (req, res) => {
-  const { email, password } = req.body;
+  const submittedEmail = String(req.body?.email || '').trim().toLowerCase();
+  const submittedPassword = String(req.body?.password || '').trim();
+  const defaultAdminEmail = getDefaultAdminEmail().trim().toLowerCase();
+  const defaultAdminPassword = getDefaultAdminPassword().trim();
+  const defaultAdminName = getDefaultAdminName();
 
   try {
-    const admin = await Admin.findOne({ email });
-    if (admin && (await bcrypt.compare(password, admin.password))) {
+    const admin = await Admin.findOne({ email: submittedEmail });
+    if (admin && (await bcrypt.compare(submittedPassword, admin.password))) {
       const token = generateToken('admin_01');
       res.cookie('jwt', token, getJwtCookieOptions());
       return res.json({
@@ -103,13 +125,26 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email });
+    // Keep login aligned with the fallback admin behavior used in profile/middleware.
+    if (submittedEmail === defaultAdminEmail && submittedPassword === defaultAdminPassword) {
+      const token = generateToken('admin_01');
+      res.cookie('jwt', token, getJwtCookieOptions());
+      return res.json({
+        _id: 'admin_01',
+        name: admin?.name || defaultAdminName,
+        email: defaultAdminEmail,
+        role: 'admin',
+        token
+      });
+    }
+
+    const user = await User.findOne({ email: submittedEmail });
     
     if (user && user.isBanned) {
         return res.status(401).json({ message: 'This account has been restricted. Please contact support.' });
     }
 
-    if (user && (await bcrypt.compare(password, user.password))) {
+    if (user && (await bcrypt.compare(submittedPassword, user.password))) {
       const token = generateToken(user.id);
       res.cookie('jwt', token, getJwtCookieOptions());
 
@@ -148,13 +183,13 @@ export const getUserProfile = asyncHandler(async (req, res) => {
 
   if (isAdmin) {
     profile = await Admin.findOne({ email: req.user.email });
-    if (!profile && req.user.email === DEFAULT_ADMIN_EMAIL) {
+    if (!profile && req.user.email === getDefaultAdminEmail()) {
       // Return hardcoded values for backdoor admin if not in DB yet
       return res.json({
         id: 'admin_01',
         _id: 'admin_01',
-        name: DEFAULT_ADMIN_NAME,
-        email: DEFAULT_ADMIN_EMAIL,
+        name: getDefaultAdminName(),
+        email: getDefaultAdminEmail(),
         role: 'admin'
       });
     }
@@ -190,14 +225,18 @@ export const updateUserProfile = asyncHandler(async (req, res) => {
 
     if (isAdmin) {
         user = await Admin.findOne({ email: req.user.email });
-        if (!user && req.user.email === DEFAULT_ADMIN_EMAIL) {
+        if (!user && req.user.email === getDefaultAdminEmail()) {
             // Create the admin record if it doesn't exist but they are logged in via backdoor
+<<<<<<< HEAD
             const salt = await bcrypt.genSalt(10);
             user = new Admin({
                 email: DEFAULT_ADMIN_EMAIL,
                 name: DEFAULT_ADMIN_NAME,
                 password: await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, salt)
             });
+=======
+            user = await buildSeededAdmin();
+>>>>>>> 5b2e0b83b70c256940147bf4628eda19205fbbc9
         }
     } else {
         user = await User.findOne({ id: req.user.id });
@@ -383,6 +422,7 @@ export const updateFcmToken = asyncHandler(async (req, res) => {
     let user;
     if (req.user.role === 'admin') {
         user = await Admin.findOne({ email: req.user.email });
+<<<<<<< HEAD
         if (!user && req.user.email === DEFAULT_ADMIN_EMAIL) {
             const salt = await bcrypt.genSalt(10);
             user = new Admin({
@@ -390,6 +430,10 @@ export const updateFcmToken = asyncHandler(async (req, res) => {
                 name: DEFAULT_ADMIN_NAME,
                 password: await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, salt)
             });
+=======
+        if (!user && req.user.email === getDefaultAdminEmail()) {
+            user = await buildSeededAdmin();
+>>>>>>> 5b2e0b83b70c256940147bf4628eda19205fbbc9
         }
     } else {
         user = await User.findOne({ id: req.user.id });
