@@ -2,8 +2,8 @@ import fetch from 'node-fetch';
 
 const API_URL = 'http://localhost:5000/api';
 const credentials = {
-    email: 'admin@farmlyf.com',
-    password: 'admin'
+    email: 'biotatwaindia@gmail.com',
+    password: 'BIPL$Secure2026'
 };
 
 async function testAuth() {

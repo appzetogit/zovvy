@@ -59,7 +59,7 @@ const ComboFormPage = () => {
     // Initial State
     const [formData, setFormData] = useState({
         name: '',
-        brand: 'FARMLYF',
+        brand: 'ZOVVY',
         category: 'combos-packs', // Default for combos
         subcategory: '',
         tag: '',

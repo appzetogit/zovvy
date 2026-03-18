@@ -2,6 +2,9 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import Admin from '../models/Admin.js';
 
+const DEFAULT_ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'biotatwaindia@gmail.com';
+const DEFAULT_ADMIN_NAME = process.env.ADMIN_NAME || 'Super Admin';
+
 export const protect = async (req, res, next) => {
   let token;
 
@@ -18,7 +21,7 @@ export const protect = async (req, res, next) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret123');
 
       if (decoded.id === 'admin_01') {
-        const admin = await Admin.findOne({ email: process.env.ADMIN_EMAIL }).select('-password') ||
+        const admin = await Admin.findOne({ email: process.env.ADMIN_EMAIL || DEFAULT_ADMIN_EMAIL }).select('-password') ||
           await Admin.findOne({}).sort({ createdAt: 1 }).select('-password');
 
         req.user = admin ? {
@@ -30,8 +33,8 @@ export const protect = async (req, res, next) => {
         } : {
           _id: 'admin_01',
           id: 'admin_01',
-          name: process.env.ADMIN_NAME || 'Super Admin',
-          email: process.env.ADMIN_EMAIL || 'admin@farmlyf.com',
+          name: DEFAULT_ADMIN_NAME,
+          email: DEFAULT_ADMIN_EMAIL,
           role: 'admin'
         };
       } else {
@@ -56,7 +59,7 @@ export const protect = async (req, res, next) => {
 export const admin = (req, res, next) => {
   if (req.user && req.user.role === 'admin') {
     next();
-  } else if (req.user && req.user.email === (process.env.ADMIN_EMAIL || 'admin@farmlyf.com')) {
+  } else if (req.user && req.user.email === DEFAULT_ADMIN_EMAIL) {
     // Handling the backdoor admin for now
     next();
   } else {

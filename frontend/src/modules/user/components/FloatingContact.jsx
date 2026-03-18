@@ -318,7 +318,7 @@ const FloatingContact = () => {
             faqs: (p.faqs || []).map((f) => `Q:${f?.q || ''} A:${f?.a || ''}`)
         }));
 
-        return `You are a nutrition assistant for Farmlyf (dry fruits and healthy foods).
+        return `You are a nutrition assistant for zovvy (dry fruits and healthy foods).
 User profile: ${JSON.stringify(summary)}
 Available products: ${JSON.stringify(productList)}
 
@@ -481,7 +481,7 @@ Task:
         if (!isOpen) return;
         if (messages.length > 0) return;
         if (!user) {
-            pushMessage('assistant', 'Please sign in to use Farmlyf Assistant.');
+            pushMessage('assistant', 'Please sign in to use zovvy Assistant.');
             setStep(99);
             return;
         }
@@ -498,11 +498,11 @@ Task:
             return;
         }
         if (!gender) {
-            pushMessage('assistant', `Hii ${name}, welcome to Farmlyf! What is your gender? (male / female / other)`);
+            pushMessage('assistant', `Hii ${name}, welcome to zovvy! What is your gender? (male / female / other)`);
             setStep(2);
             return;
         }
-        pushMessage('assistant', `Hii ${name}, welcome to Farmlyf!`);
+        pushMessage('assistant', `Hii ${name}, welcome to zovvy!`);
         askForStep(3);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, user, messages.length]);
@@ -701,7 +701,7 @@ Task:
                     <div className="flex items-center justify-between px-4 py-3 bg-footerBg text-white">
                         <div className="flex items-center gap-2">
                             <Sparkles size={16} />
-                            <span className="text-xs font-black uppercase tracking-widest">Farmlyf Assistant</span>
+                            <span className="text-xs font-black uppercase tracking-widest">zovvy Assistant</span>
                         </div>
                         <button
                             onClick={() => setIsOpen(false)}

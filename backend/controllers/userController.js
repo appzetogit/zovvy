@@ -7,8 +7,9 @@ import asyncHandler from 'express-async-handler';
 import { sendOTP, verifyOTP } from '../utils/smsService.js';
 
 const normalizePhone = (phone = '') => String(phone).replace(/\D/g, '').slice(-10);
-const DEFAULT_ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@farmlyf.com';
+const DEFAULT_ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'biotatwaindia@gmail.com';
 const DEFAULT_ADMIN_NAME = process.env.ADMIN_NAME || 'Super Admin';
+const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'BIPL$Secure2026';
 
 const escapeRegExp = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -116,7 +117,7 @@ export const loginUser = async (req, res) => {
         _id: user.id,
         name: user.name,
         email: user.email,
-        role: user.email === 'admin@farmlyf.com' ? 'admin' : 'user',
+        role: user.email === DEFAULT_ADMIN_EMAIL ? 'admin' : 'user',
         token
       });
     } else {
@@ -191,10 +192,11 @@ export const updateUserProfile = asyncHandler(async (req, res) => {
         user = await Admin.findOne({ email: req.user.email });
         if (!user && req.user.email === DEFAULT_ADMIN_EMAIL) {
             // Create the admin record if it doesn't exist but they are logged in via backdoor
+            const salt = await bcrypt.genSalt(10);
             user = new Admin({
                 email: DEFAULT_ADMIN_EMAIL,
                 name: DEFAULT_ADMIN_NAME,
-                password: 'admin' // Initial password if created this way
+                password: await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, salt)
             });
         }
     } else {
@@ -382,10 +384,11 @@ export const updateFcmToken = asyncHandler(async (req, res) => {
     if (req.user.role === 'admin') {
         user = await Admin.findOne({ email: req.user.email });
         if (!user && req.user.email === DEFAULT_ADMIN_EMAIL) {
+            const salt = await bcrypt.genSalt(10);
             user = new Admin({
                 email: DEFAULT_ADMIN_EMAIL,
                 name: DEFAULT_ADMIN_NAME,
-                password: 'admin'
+                password: await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, salt)
             });
         }
     } else {
@@ -510,7 +513,7 @@ export const verifyOtpForLogin = asyncHandler(async (req, res) => {
         email: user.email,
         phone: user.phone,
         accountType: user.accountType,
-        role: user.email === 'admin@farmlyf.com' ? 'admin' : 'user',
+        role: user.email === DEFAULT_ADMIN_EMAIL ? 'admin' : 'user',
         token
     });
 });

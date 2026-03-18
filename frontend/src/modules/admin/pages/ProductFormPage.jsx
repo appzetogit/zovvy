@@ -104,7 +104,7 @@ const ProductFormPage = () => {
 
     const [formData, setFormData] = useState({
         name: '',
-        brand: 'FARMLYF',
+        brand: 'ZOVVY',
         category: 'nuts',
         subcategory: '',
         tag: '',
