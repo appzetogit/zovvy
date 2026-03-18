@@ -9,19 +9,12 @@ import Coupon from './models/Coupon.js';
 import Admin from './models/Admin.js';
 import Category from './models/Category.js';
 import SubCategory from './models/SubCategory.js';
-import bcrypt from 'bcryptjs';
 
 dotenv.config();
 
-<<<<<<< HEAD
-const DEFAULT_ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'biotatwaindia@gmail.com';
-const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'BIPL$Secure2026';
-const DEFAULT_ADMIN_NAME = process.env.ADMIN_NAME || 'Super Admin';
-=======
 const DEFAULT_ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@farmlyf.com';
 const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
 const DEFAULT_ADMIN_NAME = process.env.ADMIN_NAME || 'Admin User';
->>>>>>> 5b2e0b83b70c256940147bf4628eda19205fbbc9
 
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/farmlyf')
     .then(() => console.log('MongoDB Connected for Seeding'))
@@ -156,13 +149,6 @@ const seedData = async () => {
         await Coupon.insertMany(coupons);
         console.log('Coupons Seeded');
 
-<<<<<<< HEAD
-        const adminSalt = await bcrypt.genSalt(10);
-        await Admin.create({
-            email: DEFAULT_ADMIN_EMAIL,
-            password: await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, adminSalt),
-            name: DEFAULT_ADMIN_NAME
-=======
         // --- ADMIN ---
         const hashedAdminPassword = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 10);
         await Admin.create({
@@ -170,7 +156,6 @@ const seedData = async () => {
             password: hashedAdminPassword,
             name: DEFAULT_ADMIN_NAME,
             role: 'Admin'
->>>>>>> 5b2e0b83b70c256940147bf4628eda19205fbbc9
         });
         console.log('Admin Seeded');
 

@@ -47,6 +47,36 @@ const BENEFIT_TITLES = [
 ];
 
 const UNIT_OPTIONS = ['g', 'kg'];
+
+const getLegacyVariantSku = (product, variant, index) => {
+    const brandCode = (product?.brand || 'SKU')
+        .replace(/[^a-zA-Z0-9]/g, '')
+        .slice(0, 3)
+        .toUpperCase() || 'SKU';
+    const sizeCode = (
+        variant?.quantity && variant?.unit
+            ? `${variant.quantity}${variant.unit}`
+            : variant?.weight || 'VAR'
+    )
+        .replace(/\s+/g, '')
+        .toUpperCase();
+
+    return `${brandCode}-${sizeCode}-${index + 1}`;
+};
+
+const normalizeVariantForForm = (product, variant, index) => {
+    const quantity = variant.quantity || variant.weight?.match(/^\d*\.?\d+/)?.[0] || '';
+    const unit = variant.unit || variant.weight?.match(/[a-zA-Z]+$/)?.[0] || 'g';
+
+    return {
+        ...variant,
+        id: variant.id || variant._id || `${Date.now()}-${index}`,
+        sku: variant.sku || getLegacyVariantSku(product, { ...variant, quantity, unit }, index),
+        quantity,
+        unit,
+    };
+};
+
 const SuggestionInput = ({ value, onChange, placeholder, options }) => {
     const [show, setShow] = useState(false);
     return (
@@ -157,7 +187,9 @@ const ProductFormPage = () => {
             setFormData(prev => ({
                 ...prev, // Keep defaults if db fields are missing
                 ...productToEdit,
-                variants: productToEdit.variants?.length ? productToEdit.variants : prev.variants,
+                variants: productToEdit.variants?.length
+                    ? productToEdit.variants.map((variant, index) => normalizeVariantForForm(productToEdit, variant, index))
+                    : prev.variants,
                 nutrition: normalizedNutrition.length ? normalizedNutrition : prev.nutrition,
                 specifications: productToEdit.specifications?.length ? productToEdit.specifications : prev.specifications,
                 faqs: productToEdit.faqs?.length ? productToEdit.faqs : prev.faqs,

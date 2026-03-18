@@ -18,6 +18,22 @@ import toast from 'react-hot-toast';
 import { AdminTable, AdminTableHeader, AdminTableHead, AdminTableBody, AdminTableRow, AdminTableCell } from '../components/AdminTable';
 import Pagination from '../components/Pagination';
 
+const getLegacyVariantSku = (product, variant, index = 0) => {
+    const brandCode = (product?.brand || 'SKU')
+        .replace(/[^a-zA-Z0-9]/g, '')
+        .slice(0, 3)
+        .toUpperCase() || 'SKU';
+    const sizeCode = (
+        variant?.quantity && variant?.unit
+            ? `${variant.quantity}${variant.unit}`
+            : variant?.weight || 'VAR'
+    )
+        .replace(/\s+/g, '')
+        .toUpperCase();
+
+    return `${brandCode}-${sizeCode}-${index + 1}`;
+};
+
 const StockAdjustmentPage = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
@@ -31,11 +47,28 @@ const StockAdjustmentPage = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
+    const getDisplaySku = (product, variant = null) => {
+        if (variant?.sku?.trim()) return variant.sku.trim();
+        if (product?.sku?.trim()) return product.sku.trim();
+        if (variant) {
+            const variantIndex = product?.variants?.findIndex((item) => (item.id || item._id) === (variant.id || variant._id)) ?? -1;
+            return getLegacyVariantSku(product, variant, variantIndex >= 0 ? variantIndex : 0);
+        }
+        return product?.id || product?._id || '-';
+    };
+
     const filteredProducts = useMemo(() => {
-        return products.filter(p =>
-            p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            p.sku?.toLowerCase().includes(searchTerm.toLowerCase())
-        );
+        const normalizedSearch = searchTerm.toLowerCase();
+
+        return products.filter((p) => {
+            const matchesName = p.name?.toLowerCase().includes(normalizedSearch);
+            const matchesProductSku = p.sku?.toLowerCase().includes(normalizedSearch);
+            const matchesVariantSku = p.variants?.some((variant) =>
+                variant?.sku?.toLowerCase().includes(normalizedSearch)
+            );
+
+            return matchesName || matchesProductSku || matchesVariantSku;
+        });
     }, [products, searchTerm]);
 
     const paginatedProducts = useMemo(() => {
@@ -235,7 +268,7 @@ const StockAdjustmentPage = () => {
                                         </AdminTableCell>
                                         <AdminTableCell>
                                             <span className="text-xs font-black text-gray-400 uppercase tracking-widest font-mono">
-                                                {hasVariants ? (selectedVariant?.id?.slice(-6).toUpperCase()) : (p.sku || p.id?.slice(-6).toUpperCase() || '-')}
+                                                {getDisplaySku(p, selectedVariant)}
                                             </span>
                                         </AdminTableCell>
                                         <AdminTableCell className="text-center">

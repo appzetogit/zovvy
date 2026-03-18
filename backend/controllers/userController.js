@@ -7,16 +7,10 @@ import asyncHandler from 'express-async-handler';
 import { sendOTP, verifyOTP } from '../utils/smsService.js';
 
 const normalizePhone = (phone = '') => String(phone).replace(/\D/g, '').slice(-10);
-<<<<<<< HEAD
-const DEFAULT_ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'biotatwaindia@gmail.com';
-const DEFAULT_ADMIN_NAME = process.env.ADMIN_NAME || 'Super Admin';
-const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'BIPL$Secure2026';
-=======
 
 const getDefaultAdminEmail = () => process.env.ADMIN_EMAIL || 'admin@farmlyf.com';
 const getDefaultAdminName = () => process.env.ADMIN_NAME || 'Super Admin';
 const getDefaultAdminPassword = () => process.env.ADMIN_PASSWORD || 'admin';
->>>>>>> 5b2e0b83b70c256940147bf4628eda19205fbbc9
 
 const escapeRegExp = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -152,7 +146,7 @@ export const loginUser = async (req, res) => {
         _id: user.id,
         name: user.name,
         email: user.email,
-        role: user.email === DEFAULT_ADMIN_EMAIL ? 'admin' : 'user',
+        role: user.email === defaultAdminEmail ? 'admin' : 'user',
         token
       });
     } else {
@@ -227,16 +221,7 @@ export const updateUserProfile = asyncHandler(async (req, res) => {
         user = await Admin.findOne({ email: req.user.email });
         if (!user && req.user.email === getDefaultAdminEmail()) {
             // Create the admin record if it doesn't exist but they are logged in via backdoor
-<<<<<<< HEAD
-            const salt = await bcrypt.genSalt(10);
-            user = new Admin({
-                email: DEFAULT_ADMIN_EMAIL,
-                name: DEFAULT_ADMIN_NAME,
-                password: await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, salt)
-            });
-=======
             user = await buildSeededAdmin();
->>>>>>> 5b2e0b83b70c256940147bf4628eda19205fbbc9
         }
     } else {
         user = await User.findOne({ id: req.user.id });
@@ -422,18 +407,8 @@ export const updateFcmToken = asyncHandler(async (req, res) => {
     let user;
     if (req.user.role === 'admin') {
         user = await Admin.findOne({ email: req.user.email });
-<<<<<<< HEAD
-        if (!user && req.user.email === DEFAULT_ADMIN_EMAIL) {
-            const salt = await bcrypt.genSalt(10);
-            user = new Admin({
-                email: DEFAULT_ADMIN_EMAIL,
-                name: DEFAULT_ADMIN_NAME,
-                password: await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, salt)
-            });
-=======
         if (!user && req.user.email === getDefaultAdminEmail()) {
             user = await buildSeededAdmin();
->>>>>>> 5b2e0b83b70c256940147bf4628eda19205fbbc9
         }
     } else {
         user = await User.findOne({ id: req.user.id });
