@@ -31,7 +31,23 @@ if (typeof window !== 'undefined' && Quill) {
 const API_URL = API_BASE_URL;
 
 // Predefined Options for Dropdowns
-const NUTRITION_LABELS = ['Energy', 'Protein', 'Carbohydrates', 'Sugar', 'Fat', 'Saturated Fat', 'Fiber', 'Sodium', 'Cholesterol', 'Iron', 'Calcium', 'Vitamin C', 'Vitamin A', 'Potassium'];
+const NUTRITION_LABELS = [
+    'Energy (kcal)',
+    'Protein (g)',
+    'Added Sugar (g)',
+    'Total Fat (g)',
+    'Dietary Fibre',
+    'Saturated Fatty Acid (g)',
+    'Trans Fatty Acid (g)',
+    'Calcium as Ca',
+    'Potassium as K',
+    'Sodium as Na',
+    'Iron as Fe',
+    'Vitamin D (Ergocalciferol)',
+    'Carbohydrate',
+    'Total Sugar as inverted sugar',
+    'Cholesterol'
+];
 const SPECIFICATION_LABELS = ['Origin', 'Shelf Life', 'Ingredients', 'Storage Instructions', 'Allergen Info', 'FSSAI License', 'Manufacturer', 'Country of Manufacture'];
 const FAQ_QUESTIONS = [
     'How should I store this product?',
@@ -80,7 +96,7 @@ const normalizeVariantForForm = (product, variant, index) => {
 const SuggestionInput = ({ value, onChange, placeholder, options }) => {
     const [show, setShow] = useState(false);
     return (
-        <div className="relative w-full group/combo">
+        <div className="relative w-full group/combo z-10 focus-within:z-[120]">
             <input
                 type="text"
                 value={value}
@@ -91,7 +107,7 @@ const SuggestionInput = ({ value, onChange, placeholder, options }) => {
                 className="w-full bg-white border border-gray-300 rounded-xl p-3 text-xs font-bold text-black outline-none focus:border-black transition-all"
             />
             {show && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-48 overflow-y-auto z-50">
+                <div className="absolute top-full left-0 mt-1 w-[20rem] max-w-[32rem] bg-white border border-gray-200 rounded-xl shadow-xl max-h-48 overflow-y-auto z-[130]">
                     {options.filter(o => o.toLowerCase().includes(value.toLowerCase())).map((opt, i) => (
                         <div
                             key={i}
@@ -619,7 +635,7 @@ const ProductFormPage = () => {
                 {/* Right Side: Media & Classification */}
                 <div className="lg:col-span-4 space-y-8">
                     {/* Media */}
-                    <div className="bg-white p-8 rounded-[2.5rem] border border-gray-300 shadow-sm space-y-6 text-left">
+                    <div className="relative overflow-visible bg-white p-8 rounded-[2.5rem] border border-gray-300 shadow-sm space-y-6 text-left z-20">
                         <h3 className="text-sm font-black text-primary uppercase tracking-widest flex items-center gap-2">
                             <ImageIcon size={18} className="text-primary" />
                             Product Image
@@ -798,8 +814,8 @@ const ProductFormPage = () => {
                         </div>
                         <div className="space-y-3">
                             {Array.isArray(formData.specifications) && formData.specifications.map((spec, idx) => (
-                                <div key={idx} className="flex gap-2 items-center">
-                                    <div className="w-1/3 relative z-20">
+                                <div key={idx} className="flex gap-2 items-center relative z-10 focus-within:z-[110]">
+                                    <div className="w-1/3 relative">
                                         <SuggestionInput 
                                             value={spec.label}
                                             onChange={(e) => updateItem('specifications', idx, 'label', e.target.value)}
@@ -825,17 +841,17 @@ const ProductFormPage = () => {
                     </div>
 
                     {/* Nutrition - Moved to Right Side */}
-                    <div className="bg-white p-8 rounded-[2.5rem] border border-gray-300 shadow-sm space-y-6 text-left">
+                    <div className="relative overflow-visible bg-white p-8 rounded-[2.5rem] border border-gray-300 shadow-sm space-y-6 text-left z-30">
                         <div className="flex items-center justify-between">
                             <h3 className="text-sm font-black text-green-700 uppercase tracking-widest flex items-center gap-2">
-                                Nutrition (Per 100g)
+                                Nutrition
                             </h3>
                             <button type="button" onClick={() => addItem('nutrition', { label: '', value: '' })} className="text-[10px] font-black text-primary uppercase">+ Add</button>
                         </div>
                         <div className="space-y-3">
                             {Array.isArray(formData.nutrition) && formData.nutrition.map((nut, idx) => (
-                                <div key={idx} className="flex gap-2 items-center">
-                                    <div className="w-1/3 relative z-20">
+                                <div key={idx} className="flex gap-2 items-center relative z-10 focus-within:z-[110]">
+                                    <div className="w-1/3 relative">
                                         <SuggestionInput
                                             value={nut.label}
                                             onChange={(e) => updateItem('nutrition', idx, 'label', e.target.value)}
@@ -861,7 +877,7 @@ const ProductFormPage = () => {
                     </div>
 
                     {/* SEO Settings */}
-                    <div className="bg-white p-8 rounded-[2.5rem] border border-gray-300 shadow-sm space-y-6 text-left">
+                    <div className="relative z-10 bg-white p-8 rounded-[2.5rem] border border-gray-300 shadow-sm space-y-6 text-left">
                         <h3 className="text-sm font-black text-blue-700 uppercase tracking-widest flex items-center gap-2">
                             <Plus size={18} className="text-blue-700" />
                             SEO Settings (Optional)
