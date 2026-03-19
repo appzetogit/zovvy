@@ -43,7 +43,7 @@ const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1508061263366-c7bb3cc2
 import ProductCard from '../components/ProductCard';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const calculatePer100g = (price, quantity, unit, weightStr) => {
+const calculatePer1g = (price, quantity, unit, weightStr) => {
     let q = parseFloat(quantity);
     let u = unit ? unit.toLowerCase().trim() : '';
 
@@ -63,10 +63,10 @@ const calculatePer100g = (price, quantity, unit, weightStr) => {
     if (!q) return null;
 
     if (['g', 'gm', 'gms'].includes(u)) {
-        return ((price / q) * 100).toFixed(2);
+        return (price / q).toFixed(2);
     }
     if (['kg', 'kgs'].includes(u)) {
-        return ((price / (q * 1000)) * 100).toFixed(2);
+        return (price / (q * 1000)).toFixed(2);
     }
 
     return null;
@@ -474,8 +474,8 @@ const ProductDetailPage = () => {
     const currentVariant = (isGroupProduct && selectedVariant) ? selectedVariant : product;
 
     // Calculate normalized price
-    const per100g = calculatePer100g(currentPrice, currentVariant.quantity, currentVariant.unit, currentVariant.weight);
-    const currentUnitPrice = per100g ? `₹${per100g}/100g` : (currentVariant.unitPrice || '');
+    const per1g = calculatePer1g(currentPrice, currentVariant.quantity, currentVariant.unit, currentVariant.weight);
+    const currentUnitPrice = per1g ? `₹${per1g}/1g` : (currentVariant.unitPrice || '');
 
     const discountPercentage = Math.round(((currentMrp - currentPrice) / currentMrp) * 100);
     const saveAmount = currentMrp - currentPrice;
@@ -1405,3 +1405,4 @@ const ProductDetailPage = () => {
 };
 
 export default ProductDetailPage;
+

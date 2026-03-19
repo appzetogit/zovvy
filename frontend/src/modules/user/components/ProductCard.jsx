@@ -9,7 +9,7 @@ import { Star, Heart } from 'lucide-react';
 import logo from '../../../assets/zovvy-logo.png';
 import toast from 'react-hot-toast';
 
-const calculatePer100g = (price, quantity, unit, weightStr) => {
+const calculatePer1g = (price, quantity, unit, weightStr) => {
     let q = parseFloat(quantity);
     let u = unit ? unit.toLowerCase().trim() : '';
 
@@ -29,10 +29,10 @@ const calculatePer100g = (price, quantity, unit, weightStr) => {
     if (!q) return null;
 
     if (['g', 'gm', 'gms'].includes(u)) {
-        return ((price / q) * 100).toFixed(2);
+        return (price / q).toFixed(2);
     }
     if (['kg', 'kgs'].includes(u)) {
-        return ((price / (q * 1000)) * 100).toFixed(2);
+        return (price / (q * 1000)).toFixed(2);
     }
 
     return null;
@@ -71,12 +71,12 @@ const ProductCard = ({ product, showVault = true }) => {
         ? product.variants.find(v => v.price === displayPrice)?.discount || product.variants[0].discount
         : product.discount;
 
-    const per100gPrice = (() => {
+    const per1gPrice = (() => {
         if (hasVariants) {
             const variant = product.variants.find(v => v.price === displayPrice) || product.variants[0];
-            return calculatePer100g(displayPrice, variant.quantity, variant.unit, variant.weight);
+            return calculatePer1g(displayPrice, variant.quantity, variant.unit, variant.weight);
         }
-        return calculatePer100g(displayPrice, product.quantity, product.unit, product.weight);
+        return calculatePer1g(displayPrice, product.quantity, product.unit, product.weight);
     })();
 
     return (
@@ -150,9 +150,9 @@ const ProductCard = ({ product, showVault = true }) => {
                         <div className="flex items-baseline gap-1">
                             <span className="text-[10px] md:text-sm font-black text-footerBg tracking-tight">₹{displayPrice}</span>
                             <span className="text-[9px] md:text-[11px] text-gray-600 line-through">₹{displayMrp}</span>
-                            {per100gPrice && (
+                            {per1gPrice && (
                                 <span className="text-[8px] md:text-[10px] text-gray-500 font-medium whitespace-nowrap">
-                                    (₹{per100gPrice}/100g)
+                                    (₹{per1gPrice}/1g)
                                 </span>
                             )}
                         </div>
@@ -202,3 +202,4 @@ const ProductCard = ({ product, showVault = true }) => {
 };
 
 export default ProductCard;
+
