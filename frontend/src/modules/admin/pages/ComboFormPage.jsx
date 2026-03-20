@@ -22,7 +22,23 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 
 // Predefined Options
-const NUTRITION_LABELS = ['Energy', 'Protein', 'Carbohydrates', 'Sugar', 'Fat', 'Saturated Fat', 'Fiber', 'Sodium', 'Cholesterol', 'Iron', 'Calcium', 'Vitamin C', 'Vitamin A', 'Potassium'];
+const NUTRITION_LABELS = [
+    'Energy (kcal)',
+    'Protein (g)',
+    'Added Sugar (g)',
+    'Total Fat (g)',
+    'Dietary Fibre',
+    'Saturated Fatty Acid (g)',
+    'Trans Fatty Acid (g)',
+    'Calcium as Ca',
+    'Potassium as K',
+    'Sodium as Na',
+    'Iron as Fe',
+    'Vitamin D (Ergocalciferol)',
+    'Carbohydrate',
+    'Total Sugar as inverted sugar',
+    'Cholesterol'
+];
 const SPECIFICATION_LABELS = ['Origin', 'Shelf Life', 'Ingredients', 'Storage Instructions', 'Allergen Info', 'FSSAI License', 'Manufacturer', 'Country of Manufacture'];
 const FAQ_QUESTIONS = [
     'How should I store this combo?',

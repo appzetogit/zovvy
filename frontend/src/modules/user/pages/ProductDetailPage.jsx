@@ -43,7 +43,7 @@ const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1508061263366-c7bb3cc2
 import ProductCard from '../components/ProductCard';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const calculatePer100g = (price, quantity, unit, weightStr) => {
+const calculatePer1g = (price, quantity, unit, weightStr) => {
     let q = parseFloat(quantity);
     let u = unit ? unit.toLowerCase().trim() : '';
 
@@ -63,10 +63,10 @@ const calculatePer100g = (price, quantity, unit, weightStr) => {
     if (!q) return null;
 
     if (['g', 'gm', 'gms'].includes(u)) {
-        return ((price / q) * 100).toFixed(2);
+        return (price / q).toFixed(2);
     }
     if (['kg', 'kgs'].includes(u)) {
-        return ((price / (q * 1000)) * 100).toFixed(2);
+        return (price / (q * 1000)).toFixed(2);
     }
 
     return null;
@@ -474,8 +474,8 @@ const ProductDetailPage = () => {
     const currentVariant = (isGroupProduct && selectedVariant) ? selectedVariant : product;
 
     // Calculate normalized price
-    const per100g = calculatePer100g(currentPrice, currentVariant.quantity, currentVariant.unit, currentVariant.weight);
-    const currentUnitPrice = per100g ? `₹${per100g}/100g` : (currentVariant.unitPrice || '');
+    const per1g = calculatePer1g(currentPrice, currentVariant.quantity, currentVariant.unit, currentVariant.weight);
+    const currentUnitPrice = per1g ? `₹${per1g}/1g` : (currentVariant.unitPrice || '');
 
     const discountPercentage = Math.round(((currentMrp - currentPrice) / currentMrp) * 100);
     const saveAmount = currentMrp - currentPrice;
@@ -1074,7 +1074,7 @@ const ProductDetailPage = () => {
                                     <h3 className="text-xl font-bold text-black font-semibold">Product Description</h3>
                                     {product.description ? (
                                         <div
-                                            className="text-sm md:text-base text-gray-600 leading-relaxed text-justify px-2 prose prose-sm max-w-none"
+                                            className="product-description-content text-sm md:text-base text-gray-600 leading-relaxed px-2 max-w-none"
                                             dangerouslySetInnerHTML={{ __html: product.description }}
                                         />
                                     ) : (
@@ -1233,18 +1233,30 @@ const ProductDetailPage = () => {
                             )}
 
                             {activeTab === 'Nutrition Info' && (
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-left p-6 bg-gray-50 rounded-xl">
-                                    {(product.nutrition?.length ? product.nutrition : [
-                                        { label: 'Energy', value: '579 kcal' },
-                                        { label: 'Protein', value: '21.15 g' },
-                                        { label: 'Total Fat', value: '49.93 g' },
-                                        { label: 'Carbs', value: '21.55 g' }
-                                    ]).map((stat, i) => (
-                                        <div key={i} className="p-4 bg-white rounded-lg shadow-sm">
-                                            <div className="text-xs text-gray-500 uppercase">{stat.label}</div>
-                                            <div className="text-lg font-bold text-primary">{stat.value}</div>
-                                        </div>
-                                    ))}
+                                <div className="text-left border border-gray-200 rounded-xl overflow-hidden bg-white">
+                                    <div className="overflow-x-auto">
+                                        <table className="min-w-full text-sm md:text-base">
+                                            <thead className="bg-gray-50 border-b border-gray-200">
+                                                <tr>
+                                                    <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-gray-500">Nutrient</th>
+                                                    <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-gray-500">Value</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {(product.nutrition?.length ? product.nutrition : [
+                                                    { label: 'Energy', value: '579 kcal' },
+                                                    { label: 'Protein', value: '21.15 g' },
+                                                    { label: 'Total Fat', value: '49.93 g' },
+                                                    { label: 'Carbs', value: '21.55 g' }
+                                                ]).map((stat, i, arr) => (
+                                                    <tr key={i} className={i !== arr.length - 1 ? 'border-b border-gray-100' : ''}>
+                                                        <td className="px-4 py-4 font-semibold text-gray-900">{stat.label}</td>
+                                                        <td className="px-4 py-4 text-primary font-bold">{stat.value}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             )}
                         </motion.div>
@@ -1344,8 +1356,53 @@ const ProductDetailPage = () => {
                     </motion.div>
                 )}
             </AnimatePresence >
+
+            <style>{`
+                .product-description-content {
+                    direction: ltr;
+                    text-align: left;
+                    unicode-bidi: plaintext;
+                    overflow-wrap: anywhere;
+                    word-break: break-word;
+                }
+                .product-description-content,
+                .product-description-content p,
+                .product-description-content div,
+                .product-description-content span,
+                .product-description-content li,
+                .product-description-content h1,
+                .product-description-content h2,
+                .product-description-content h3,
+                .product-description-content h4,
+                .product-description-content h5,
+                .product-description-content h6 {
+                    direction: ltr;
+                    text-align: left;
+                }
+                .product-description-content p,
+                .product-description-content ul,
+                .product-description-content ol,
+                .product-description-content blockquote {
+                    margin: 0 0 1rem;
+                }
+                .product-description-content ul,
+                .product-description-content ol {
+                    padding-left: 1.5rem;
+                }
+                .product-description-content .ql-align-center {
+                    text-align: center;
+                }
+                .product-description-content .ql-align-justify {
+                    text-align: justify;
+                }
+                .product-description-content img,
+                .product-description-content iframe {
+                    max-width: 100%;
+                }
+            `}</style>
         </div >
     );
 };
 
 export default ProductDetailPage;
+

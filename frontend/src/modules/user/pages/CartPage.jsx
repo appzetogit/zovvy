@@ -242,7 +242,7 @@ const CartPage = () => {
                                         <div className="flex items-center gap-1">
                                             <button
                                                 onClick={() => removeFromCart(user?.id, item.id)}
-                                                className="text-gray-200 hover:text-red-500 transition-colors p-1"
+                                                className="p-1.5 rounded-full border border-gray-200 bg-white text-black shadow-sm hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors"
                                             >
                                                 <Trash2 size={14} />
                                             </button>
