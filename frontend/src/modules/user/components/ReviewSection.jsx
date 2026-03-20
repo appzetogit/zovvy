@@ -92,7 +92,6 @@ const ReviewSection = () => {
 
                                         {/* Right: Content Section */}
                                         <div className="w-full md:w-3/5 bg-black/40 backdrop-blur-md p-3 md:p-6 flex flex-col justify-center relative">
-                                            <Quote className="text-white/80 w-4 h-4 md:w-10 md:h-10 mb-1.5 md:mb-6" />
 
                                             <p className="text-white text-[10px] md:text-lg leading-relaxed mb-2 md:mb-6 font-medium">
                                                 {review.comment}

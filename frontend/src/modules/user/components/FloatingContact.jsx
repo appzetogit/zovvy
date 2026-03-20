@@ -666,7 +666,7 @@ Task:
     return (
         <div className="fixed bottom-[85px] md:bottom-6 right-4 md:right-6 flex flex-col gap-2 md:gap-3 z-[9999]">
             {/* Chat Icon - Nutraj Style */}
-            <button
+            {/* <button
                 onClick={() => setIsOpen((v) => !v)}
                 className="w-10 h-10 md:w-12 md:h-12 bg-[#25D366] text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform duration-300 group"
                 title="Chat with us"
@@ -674,7 +674,7 @@ Task:
                 <div className="bg-white/20 p-1.5 md:p-2 rounded-full">
                     <MessageCircle className="w-5 h-5 md:w-6 md:h-6" fill="white" />
                 </div>
-            </button>
+            </button> */}
 
             {/* WhatsApp Icon */}
             <a
@@ -695,115 +695,15 @@ Task:
                 </svg>
             </a>
 
-            {/* BMI Assistant Chatbox */}
+            {/* BMI Assistant Chatbox - Commented out for now */}
+            {/* 
             {isOpen && (
                 <div className="fixed bottom-24 right-4 md:right-6 w-[90vw] max-w-md bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-3 bg-footerBg text-white">
-                        <div className="flex items-center gap-2">
-                            <Sparkles size={16} />
-                            <span className="text-xs font-black uppercase tracking-widest">zovvy Assistant</span>
-                        </div>
-                        <button
-                            onClick={() => setIsOpen(false)}
-                            className="p-1 rounded-full hover:bg-white/10"
-                            aria-label="Close chat"
-                        >
-                            <X size={16} />
-                        </button>
-                    </div>
-
-                    <div ref={chatScrollRef} className="p-4 space-y-3 max-h-[60vh] overflow-y-auto">
-                        {messages.map((m, i) => (
-                            <div key={m.id || i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div
-                                    className={`max-w-[80%] rounded-2xl px-3 py-2 text-xs leading-relaxed whitespace-pre-line ${
-                                        m.role === 'user'
-                                            ? 'bg-footerBg text-white rounded-br-sm'
-                                            : 'bg-gray-100 text-gray-700 rounded-bl-sm'
-                                    }`}
-                                >
-                                    {(m.role === 'assistant' && typeof m.displayText === 'string') ? m.displayText : m.text}
-                                    {m.role === 'assistant' && m.isTyping ? <span className="ml-1 inline-block animate-pulse">|</span> : null}
-                                </div>
-                            </div>
-                        ))}
-                        {loading && (
-                            <div className="flex justify-start">
-                                <div className="max-w-[80%] rounded-2xl px-3 py-2 text-xs leading-relaxed bg-gray-100 text-gray-700 rounded-bl-sm">
-                                    {analyzingStages[analysisStageIndex]}{'.'.repeat(analysisDotCount)}
-                                </div>
-                            </div>
-                        )}
-                        {recommendations.length > 0 && (
-                            <div className="space-y-2">
-                                {recommendations.map((rec) => (
-                                    <a
-                                        key={rec.slug || rec.name}
-                                        href={rec.slug ? `/product/${rec.slug}` : '#'}
-                                        className="block bg-white border border-gray-100 rounded-xl px-3 py-2 text-xs font-bold text-footerBg hover:border-footerBg transition-colors"
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-10 h-10 rounded-lg bg-gray-50 border border-gray-100 overflow-hidden shrink-0">
-                                                {rec.image ? (
-                                                    <img src={rec.image} alt={rec.name} className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <div className="w-full h-full bg-gray-100" />
-                                                )}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="text-xs font-black truncate">{rec.name}</div>
-                                                <div className="text-[10px] text-gray-400 truncate">{rec.reason}</div>
-                                            </div>
-                                        </div>
-                                    </a>
-                                ))}
-                            </div>
-                        )}
-                        <div ref={messagesEndRef} />
-                    </div>
-
-                    {/* Quick-reply option buttons */}
-                    {quickOptions.length > 0 && !loading && step < 9 && (
-                        <div className="px-3 py-2 border-t border-gray-50 flex flex-wrap gap-1.5">
-                            {quickOptions.map((opt) => (
-                                <button
-                                    key={opt}
-                                    type="button"
-                                    onClick={() => handleQuickReply(opt)}
-                                    className="px-3 py-1.5 bg-footerBg/10 text-footerBg text-[11px] font-bold rounded-full border border-footerBg/20 hover:bg-footerBg hover:text-white transition-all duration-200 active:scale-95"
-                                >
-                                    {opt}
-                                </button>
-                            ))}
-                        </div>
-                    )}
-
-                    <form onSubmit={handleUserSubmit} className="border-t border-gray-100 p-3 flex gap-2 items-center">
-                        <input
-                            value={chatInput}
-                            onChange={(e) => setChatInput(e.target.value)}
-                            placeholder={loading ? 'Analyzing...' : 'Type your reply...'}
-                            disabled={loading || step >= 9 || !user}
-                            className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold"
-                        />
-                        <button
-                            type="submit"
-                            disabled={loading || !chatInput.trim() || step >= 9 || !user}
-                            className="w-9 h-9 bg-footerBg text-white rounded-xl flex items-center justify-center disabled:opacity-60"
-                            aria-label="Send"
-                        >
-                            <Send size={14} />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={resetChat}
-                            className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-footerBg"
-                        >
-                            Reset
-                        </button>
-                    </form>
+                    ... (Chatbox content)
                 </div>
             )}
+            */}
+
         </div>
     );
 };
