@@ -429,8 +429,24 @@ export const useUpdateWebsiteContent = (slug) => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['page-content', slug] });
+            queryClient.invalidateQueries({ queryKey: ['page-content', 'all'] });
             toast.success('Page content updated successfully!');
         },
         onError: (err) => toast.error(err.message)
+    });
+};
+
+export const useAllWebsiteContent = () => {
+    return useQuery({
+        queryKey: ['page-content', 'all'],
+        queryFn: async () => {
+            const res = await fetch(`${API_URL}/page-content`, {
+                credentials: 'include',
+                headers: getAuthHeaders()
+            });
+            if (!res.ok) throw new Error('Failed to fetch all website content');
+            return res.json();
+        },
+        staleTime: 5 * 60 * 1000
     });
 };

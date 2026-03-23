@@ -2,10 +2,13 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Phone, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useParams } from 'react-router-dom';
 import { useWebsiteContent } from '../../../hooks/useContent';
 import { useCreateContactSubmission } from '../../../hooks/useContactSubmissions';
 
-const InfoPage = ({ type }) => {
+const InfoPage = ({ type: propType }) => {
+    const { type: paramType } = useParams();
+    const type = propType || paramType;
     const { data: pageData, isLoading } = useWebsiteContent(type);
     const { data: footerData } = useWebsiteContent('footer-config');
     const isStaticContactPage = type === 'contact-us';

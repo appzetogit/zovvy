@@ -23,10 +23,12 @@ import {
     ShieldCheck,
     Star,
     Leaf,
-    Zap
+    Zap,
+    FileText
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useWebsiteContent, useUpdateWebsiteContent } from '../../../hooks/useContent';
+import { useWebsiteContent, useUpdateWebsiteContent, useAllWebsiteContent } from '../../../hooks/useContent';
+import { PAGES_CONFIG } from '../../../config/pagesConfig';
 
 const DEFAULT_FOOTER_CONFIG = {
     brand: {
@@ -77,9 +79,12 @@ const DEFAULT_FOOTER_CONFIG = {
 const FooterManagerPage = () => {
     const navigate = useNavigate();
     const { data: serverConfig, isLoading } = useWebsiteContent('footer-config');
+    const { data: allContent } = useAllWebsiteContent();
     const updateMutation = useUpdateWebsiteContent('footer-config');
     const [config, setConfig] = useState(DEFAULT_FOOTER_CONFIG);
     const [isEditing, setIsEditing] = useState(false);
+
+    const websitePages = allContent?.filter(item => PAGES_CONFIG[item.slug]) || [];
 
     useEffect(() => {
         if (serverConfig?.content) {
@@ -333,35 +338,62 @@ const FooterManagerPage = () => {
                             />
                         </div>
 
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                             {col.links.map((link, linkIndex) => (
-                                <div key={linkIndex} className="flex gap-2 items-center group">
-                                    <div className="flex-1 grid grid-cols-2 gap-2">
-                                        <input
-                                            type="text"
-                                            placeholder="Label (e.g. About Us)"
-                                            value={link.label}
-                                            onChange={(e) => updateLink(colIndex, linkIndex, 'label', e.target.value)}
-                                            className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 text-xs font-medium text-footerBg focus:bg-white focus:border-primary transition-all disabled:bg-gray-100 disabled:text-gray-500"
-                                            disabled={!isEditing}
-                                        />
-                                        <input
-                                            type="text"
-                                            placeholder="URL (e.g. /about)"
-                                            value={link.url}
-                                            onChange={(e) => updateLink(colIndex, linkIndex, 'url', e.target.value)}
-                                            className="bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 text-xs font-medium text-gray-500 focus:bg-white focus:border-primary transition-all disabled:bg-gray-100 disabled:text-gray-500"
-                                            disabled={!isEditing}
-                                        />
-                                    </div>
+                                <div key={linkIndex} className="space-y-2 p-3 bg-slate-50/50 rounded-xl border border-slate-100 group">
                                     {isEditing && (
-                                        <button
-                                            onClick={() => removeLink(colIndex, linkIndex)}
-                                            className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
+                                        <div className="flex items-center gap-2">
+                                            <FileText size={12} className="text-gray-400" />
+                                            <select
+                                                className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[10px] font-bold text-primary outline-none focus:border-primary transition-all flex-1"
+                                                onChange={(e) => {
+                                                    const slug = e.target.value;
+                                                    if (!slug) return;
+                                                    const page = websitePages.find(p => p.slug === slug);
+                                                    if (page) {
+                                                        updateLink(colIndex, linkIndex, 'label', page.title);
+                                                        // Check if it's one of the 4 direct routes
+                                                        const isDirect = ['about-us', 'privacy-policy', 'terms-conditions', 'contact-us'].includes(slug);
+                                                        updateLink(colIndex, linkIndex, 'url', isDirect ? `/${slug}` : `/pages/${slug}`);
+                                                    }
+                                                }}
+                                                value=""
+                                            >
+                                                <option value="">Quick link to Website Page...</option>
+                                                {websitePages.map(page => (
+                                                    <option key={page._id} value={page.slug}>{page.title}</option>
+                                                ))}
+                                            </select>
+                                        </div>
                                     )}
+                                    <div className="flex gap-2 items-center">
+                                        <div className="flex-1 grid grid-cols-2 gap-2">
+                                            <input
+                                                type="text"
+                                                placeholder="Label (e.g. About Us)"
+                                                value={link.label}
+                                                onChange={(e) => updateLink(colIndex, linkIndex, 'label', e.target.value)}
+                                                className="bg-white border border-slate-100 rounded-lg px-3 py-2 text-xs font-medium text-footerBg focus:bg-white focus:border-primary transition-all disabled:bg-gray-100 disabled:text-gray-500"
+                                                disabled={!isEditing}
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="URL (e.g. /about)"
+                                                value={link.url}
+                                                onChange={(e) => updateLink(colIndex, linkIndex, 'url', e.target.value)}
+                                                className="bg-white border border-slate-100 rounded-lg px-3 py-2 text-xs font-medium text-gray-500 focus:bg-white focus:border-primary transition-all disabled:bg-gray-100 disabled:text-gray-500"
+                                                disabled={!isEditing}
+                                            />
+                                        </div>
+                                        {isEditing && (
+                                            <button
+                                                onClick={() => removeLink(colIndex, linkIndex)}
+                                                className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                         </div>

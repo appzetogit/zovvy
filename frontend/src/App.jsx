@@ -131,6 +131,7 @@ function App() {
                 <Route path="login" element={<AuthPage />} />
                 <Route path="otp-verification" element={<OTPPage />} />
                 <Route path="offers/:slug" element={<SingleOfferPage />} />
+                <Route path="pages/:type" element={<InfoPage />} />
               </Route>
 
               <Route path="/admin/login" element={<LoginPage />} />
