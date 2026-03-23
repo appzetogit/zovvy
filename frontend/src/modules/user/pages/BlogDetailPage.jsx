@@ -83,7 +83,7 @@ const BlogDetailPage = () => {
                         </span>
                         <span className="flex items-center gap-2">
                             <User size={14} />
-                            {blog.author}
+                            Zovvy
                         </span>
                     </div>
 

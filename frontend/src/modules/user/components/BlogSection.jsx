@@ -84,10 +84,10 @@ const BlogSection = () => {
                                         <div className="flex justify-between items-center mb-2 text-xs text-gray-500 font-medium">
                                             <div className="flex items-center gap-2">
                                                 <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-white flex items-center justify-center border border-gray-100 overflow-hidden shadow-sm">
-                                                    <img src={logoImg} alt="FarmLyf" className="w-full h-full object-cover" />
+                                                    <img src={logoImg} alt="Zovvy" className="w-full h-full object-cover" />
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <span className="text-gray-900 font-bold">{post.author}</span>
+                                                    <span className="text-gray-900 font-bold">Zovvy</span>
                                                     <span className="text-[10px]">{post.date ? new Date(post.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}</span>
                                                 </div>
                                             </div>

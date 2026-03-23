@@ -172,10 +172,10 @@ const ProductFormPage = () => {
             { q: 'How to store?', a: 'Store in a cool, dry place.' }
         ],
         nutrition: [
-            { label: 'Energy', value: '576 Kcal' },
-            { label: 'Protein', value: '21g' },
-            { label: 'Fat', value: '49g' },
-            { label: 'Carbs', value: '22g' }
+            { label: 'Energy', per100g: '576 Kcal', perServe: '' },
+            { label: 'Protein', per100g: '21g', perServe: '' },
+            { label: 'Fat', per100g: '49g', perServe: '' },
+            { label: 'Carbs', per100g: '22g', perServe: '' }
         ],
         contents: [], // For combo products
         seoTitle: '',
@@ -190,9 +190,16 @@ const ProductFormPage = () => {
             if (productToEdit.nutrition && !Array.isArray(productToEdit.nutrition)) {
                 normalizedNutrition = Object.entries(productToEdit.nutrition).map(([key, value]) => ({
                     label: key.charAt(0).toUpperCase() + key.slice(1),
-                    value: String(value)
+                    per100g: String(value),
+                    perServe: ''
                 }));
             }
+
+            normalizedNutrition = normalizedNutrition.map((item) => ({
+                label: item.label || '',
+                per100g: item.per100g || item.value || '',
+                perServe: item.perServe || item.dailyValue || ''
+            }));
 
             // Normalize benefits
             let normalizedBenefits = productToEdit.benefits || [];
@@ -522,6 +529,64 @@ const ProductFormPage = () => {
                         </div>
                     </div>
 
+                    {/* Nutrition */}
+                    <div className="relative overflow-visible bg-white p-8 rounded-[2.5rem] border border-gray-300 shadow-sm space-y-6 text-left z-30">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-black text-green-700 uppercase tracking-widest flex items-center gap-2">
+                                Nutrition
+                            </h3>
+                            <button
+                                type="button"
+                                onClick={() => addItem('nutrition', { label: '', per100g: '', perServe: '' })}
+                                className="text-[10px] font-black text-primary uppercase"
+                            >
+                                + Add
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_auto] gap-3 px-1 text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                            <span>Nutritional Information (Approx)</span>
+                            <span>Per 100g</span>
+                            <span>% Daily Value / Per Serve</span>
+                            <span></span>
+                        </div>
+
+                        <div className="space-y-3">
+                            {Array.isArray(formData.nutrition) && formData.nutrition.map((nut, idx) => (
+                                <div key={idx} className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_auto] gap-3 items-center relative z-10 focus-within:z-[110]">
+                                    <div className="relative">
+                                        <SuggestionInput
+                                            value={nut.label}
+                                            onChange={(e) => updateItem('nutrition', idx, 'label', e.target.value)}
+                                            placeholder="Nutrient"
+                                            options={NUTRITION_LABELS}
+                                        />
+                                    </div>
+                                    <input
+                                        placeholder="Per 100g"
+                                        value={nut.per100g || ''}
+                                        onChange={(e) => updateItem('nutrition', idx, 'per100g', e.target.value)}
+                                        className="w-full bg-white border border-gray-300 rounded-xl p-3 text-xs font-bold text-black outline-none focus:border-black transition-all"
+                                    />
+                                    <input
+                                        placeholder="Per serve / %DV"
+                                        value={nut.perServe || ''}
+                                        onChange={(e) => updateItem('nutrition', idx, 'perServe', e.target.value)}
+                                        className="w-full bg-white border border-gray-300 rounded-xl p-3 text-xs font-bold text-black outline-none focus:border-black transition-all"
+                                    />
+                                    <button type="button" onClick={() => removeItem('nutrition', idx)} className="text-red-400 hover:text-red-600">
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            ))}
+                            {(!Array.isArray(formData.nutrition) || formData.nutrition.length === 0) && (
+                                <div className="text-center py-6 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">No data</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
                     {/* Pricing & Variants */}
                     <div className="bg-white p-10 rounded-[2.5rem] border border-gray-300 shadow-sm space-y-8">
                         <div className="flex items-center justify-between">
@@ -840,120 +905,6 @@ const ProductFormPage = () => {
                         </div>
                     </div>
 
-                    {/* Nutrition - Moved to Right Side */}
-                    <div className="relative overflow-visible bg-white p-8 rounded-[2.5rem] border border-gray-300 shadow-sm space-y-6 text-left z-30">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-black text-green-700 uppercase tracking-widest flex items-center gap-2">
-                                Nutrition
-                            </h3>
-                            <button type="button" onClick={() => addItem('nutrition', { label: '', value: '' })} className="text-[10px] font-black text-primary uppercase">+ Add</button>
-                        </div>
-                        <div className="space-y-3">
-                            {Array.isArray(formData.nutrition) && formData.nutrition.map((nut, idx) => (
-                                <div key={idx} className="flex gap-2 items-center relative z-10 focus-within:z-[110]">
-                                    <div className="w-1/3 relative">
-                                        <SuggestionInput
-                                            value={nut.label}
-                                            onChange={(e) => updateItem('nutrition', idx, 'label', e.target.value)}
-                                            placeholder="Label"
-                                            options={NUTRITION_LABELS}
-                                        />
-                                    </div>
-                                    <input
-                                        placeholder="Value"
-                                        value={nut.value}
-                                        onChange={(e) => updateItem('nutrition', idx, 'value', e.target.value)}
-                                        className="flex-1 bg-white border border-gray-300 rounded-xl p-3 text-xs font-bold text-black outline-none focus:border-black transition-all"
-                                    />
-                                    <button type="button" onClick={() => removeItem('nutrition', idx)} className="text-red-400 hover:text-red-600"><Trash2 size={16} /></button>
-                                </div>
-                            ))}
-                            {(!Array.isArray(formData.nutrition) || formData.nutrition.length === 0) && (
-                                <div className="text-center py-6 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">No data</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* SEO Settings */}
-                    <div className="relative z-10 bg-white p-8 rounded-[2.5rem] border border-gray-300 shadow-sm space-y-6 text-left">
-                        <h3 className="text-sm font-black text-blue-700 uppercase tracking-widest flex items-center gap-2">
-                            <Plus size={18} className="text-blue-700" />
-                            SEO Settings (Optional)
-                        </h3>
-
-                        <div className="space-y-4">
-                            <div className="flex flex-col gap-2">
-                                <label className="text-[10px] font-black text-black uppercase tracking-widest ml-1 text-left">SEO Title</label>
-                                <input
-                                    type="text"
-                                    name="seoTitle"
-                                    value={formData.seoTitle}
-                                    onChange={handleChange}
-                                    placeholder="Meta title for search engines..."
-                                    className="w-full bg-white border border-gray-300 rounded-2xl p-4 text-xs font-bold text-black outline-none focus:border-black transition-all"
-                                />
-                            </div>
-
-                            <div className="flex flex-col gap-2">
-                                <label className="text-[10px] font-black text-black uppercase tracking-widest ml-1 text-left">SEO Description</label>
-                                <textarea
-                                    name="seoDescription"
-                                    value={formData.seoDescription}
-                                    onChange={handleChange}
-                                    placeholder="Meta description for search engines..."
-                                    rows="3"
-                                    className="w-full bg-white border border-gray-300 rounded-2xl p-4 text-xs font-bold text-black outline-none focus:border-black transition-all"
-                                />
-                            </div>
-
-                            <div className="space-y-4">
-                                <label className="text-[10px] font-black text-black uppercase tracking-widest ml-1 text-left">SEO Image (Social Share)</label>
-                                <div className="aspect-video bg-gray-50 rounded-2xl border border-dashed border-gray-200 flex flex-col items-center justify-center p-4 relative group overflow-hidden">
-                                    {formData.seoImage ? (
-                                        <>
-                                            <img src={formData.seoImage} alt="SEO Preview" className="w-full h-full object-contain" />
-                                            <button
-                                                type="button"
-                                                onClick={() => setFormData(prev => ({ ...prev, seoImage: '' }))}
-                                                className="absolute inset-0 bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity font-bold text-[10px] uppercase"
-                                            >
-                                                Remove Image
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-white transition-all">
-                                            <input
-                                                type="file"
-                                                className="hidden"
-                                                accept="image/*"
-                                                onChange={async (e) => {
-                                                    const file = e.target.files?.[0];
-                                                    if (file) {
-                                                        const res = await uploadImageMutation.mutateAsync(file);
-                                                        if (res?.url) {
-                                                            setFormData(prev => ({ ...prev, seoImage: res.url }));
-                                                        }
-                                                    }
-                                                }}
-                                            />
-                                            <Plus size={20} className="text-gray-300" />
-                                            <span className="text-[8px] font-black text-gray-400 uppercase mt-1">Upload SEO Image</span>
-                                        </label>
-                                    )}
-                                </div>
-                                <input
-                                    type="text"
-                                    name="seoImage"
-                                    value={formData.seoImage}
-                                    onChange={handleChange}
-                                    placeholder="Or paste SEO image URL..."
-                                    className="w-full bg-white border border-gray-300 rounded-2xl p-4 text-xs font-bold text-black outline-none focus:border-black transition-all"
-                                />
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </form>
         </div>

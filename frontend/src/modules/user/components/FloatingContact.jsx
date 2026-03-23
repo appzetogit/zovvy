@@ -68,7 +68,7 @@ const FloatingContact = () => {
             description: stripHtml(product.description),
             benefits: (product.benefits || []).map((b) => `${b?.title || ''} ${b?.description || ''}`).join(' '),
             specifications: (product.specifications || []).map((s) => `${s?.label || ''} ${s?.value || ''}`).join(' '),
-            nutrition: (product.nutrition || []).map((n) => `${n?.label || ''} ${n?.value || ''}`).join(' '),
+            nutrition: (product.nutrition || []).map((n) => `${n?.label || ''} ${n?.per100g || n?.value || ''} ${n?.perServe || ''}`).join(' '),
             faqs: (product.faqs || []).map((f) => `${f?.q || ''} ${f?.a || ''}`).join(' '),
             contents: (product.contents || []).map((c) => `${c?.productName || ''} ${c?.quantity || ''}`).join(' ')
         };
@@ -314,7 +314,7 @@ const FloatingContact = () => {
             description: stripHtml(p.description || ''),
             benefits: (p.benefits || []).map((b) => `${b?.title || ''}: ${b?.description || ''}`),
             specifications: (p.specifications || []).map((s) => `${s?.label || ''}: ${s?.value || ''}`),
-            nutrition: (p.nutrition || []).map((n) => `${n?.label || ''}: ${n?.value || ''}`),
+            nutrition: (p.nutrition || []).map((n) => `${n?.label || ''}: ${n?.per100g || n?.value || ''} ${n?.perServe || ''}`),
             faqs: (p.faqs || []).map((f) => `Q:${f?.q || ''} A:${f?.a || ''}`)
         }));
 

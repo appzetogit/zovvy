@@ -1,5 +1,16 @@
 import Product from '../models/Product.js';
 
+const normalizeNutrition = (nutrition = []) => {
+    if (!Array.isArray(nutrition)) return nutrition;
+
+    return nutrition.map((item) => ({
+        label: item?.label || '',
+        per100g: item?.per100g || item?.value || '',
+        perServe: item?.perServe || item?.dailyValue || '',
+        value: item?.value || item?.per100g || ''
+    }));
+};
+
 // @desc    Fetch all products
 // @route   GET /api/products
 // @access  Public
@@ -71,6 +82,9 @@ export const deleteProduct = async (req, res) => {
 export const createProduct = async (req, res) => {
     try {
         const productData = { ...req.body };
+        if (productData.nutrition) {
+            productData.nutrition = normalizeNutrition(productData.nutrition);
+        }
         if (productData.name && !productData.slug) {
             productData.slug = productData.name.trim().toLowerCase().replace(/[^\w ]+/g, '').replace(/ +/g, '-');
         }
@@ -98,6 +112,9 @@ export const updateProduct = async (req, res) => {
         if (product) {
             // Strip fields that shouldn't be manually updated
             const { _id, __v, createdAt, ...updateData } = req.body;
+            if (updateData.nutrition) {
+                updateData.nutrition = normalizeNutrition(updateData.nutrition);
+            }
             
             // Auto-update slug if name changes and NO slug is provided in updateData
             if (updateData.name && !updateData.slug) {

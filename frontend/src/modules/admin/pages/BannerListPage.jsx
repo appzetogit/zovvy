@@ -15,24 +15,24 @@ const BannerListPage = () => {
     const { data: offers = [] } = useOffers();
 
     const defaultPromoCard = {
-        topBadge: 'Hot Deal',
-        badgeText1: 'Upto',
-        discountTitle: '60',
-        discountSuffix: '%',
-        discountLabel: 'OFF',
-        extraDiscountSubtitle: 'EXTRA SAVE',
-        extraDiscount: '15',
-        extraDiscountSuffix: '%',
-        couponCode: 'FRESH20',
-        showCouponCode: true,
+        topBadge: '',
+        badgeText1: '',
+        discountTitle: '',
+        discountSuffix: '',
+        discountLabel: '',
+        extraDiscountSubtitle: '',
+        extraDiscount: '',
+        extraDiscountSuffix: '',
+        couponCode: '',
+        showCouponCode: false,
         isVisible: false
     };
 
     const [isEditing, setIsEditing] = useState(false);
     const [editId, setEditId] = useState(null);
     const [formData, setFormData] = useState({
-        title: 'Slide', subtitle: '', badgeText: '',
-        ctaText: 'Shop Now', link: '/', section: 'hero',
+        title: '', subtitle: '', badgeText: '',
+        ctaText: '', link: '', section: 'hero',
         image: '', publicId: '', slides: [], isActive: true,
         promoCard: { ...defaultPromoCard }
     });
@@ -42,18 +42,20 @@ const BannerListPage = () => {
     const [offerDropdownOpen, setOfferDropdownOpen] = useState(false);
     const [linkSearch, setLinkSearch] = useState('');
     const [editMode, setEditMode] = useState('banner');
+    const [isCreating, setIsCreating] = useState(false);
 
     const activeSlide = (formData.slides && formData.slides[activeSlideIndex]) || null;
 
     const resetForm = () => {
         setFormData({
-            title: 'Slide', subtitle: '', badgeText: '',
-            ctaText: 'Shop Now', link: '/', section: 'hero',
+            title: '', subtitle: '', badgeText: '',
+            ctaText: '', link: '', section: 'hero',
             image: '', publicId: '', slides: [], isActive: true,
             promoCard: { ...defaultPromoCard }
         });
         setPreview(null);
         setIsEditing(false);
+        setIsCreating(false);
         setEditId(null);
         setActiveSlideIndex(0);
     };
@@ -61,10 +63,16 @@ const BannerListPage = () => {
     const handleAddSlide = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
+        if ((formData.slides || []).length >= 1) {
+            toast.error('Only one image is allowed for a banner slide');
+            if (e.target) e.target.value = '';
+            return;
+        }
         try {
             const res = await uploadImageMutation.mutateAsync(file);
             if (res?.url) {
-                const newSlide = { image: res.url, publicId: res.publicId, link: '/', ctaText: 'Shop Now' };
+                setIsCreating(true);
+                const newSlide = { image: res.url, publicId: res.publicId, link: '', ctaText: '' };
                 setFormData(prev => {
                     const updatedSlides = [...(prev.slides || []), newSlide];
                     return { ...prev, image: updatedSlides[0].image, publicId: updatedSlides[0].publicId, slides: updatedSlides };
@@ -127,6 +135,7 @@ const BannerListPage = () => {
         });
         setPreview(banner.image);
         setIsEditing(true);
+        setIsCreating(false);
         setEditId(banner._id || banner.id);
         setActiveSlideIndex(0);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -174,7 +183,7 @@ const BannerListPage = () => {
                 <div className="w-full lg:w-[400px] shrink-0">
                     <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 sticky top-6">
                         <div className="mb-6">
-                            <h2 className="text-xl font-bold text-gray-900 leading-tight">{isEditing ? 'Edit Banner' : 'New Banner'}</h2>
+                            <h2 className="text-xl font-bold text-gray-900 leading-tight">{isEditing ? 'Edit Banner' : 'New Slide'}</h2>
                             <p className="text-xs text-gray-400 mt-1 font-medium italic">Customize your billboard carousel</p>
                         </div>
 
@@ -216,7 +225,6 @@ const BannerListPage = () => {
                                         </div>
                                     </div>
                                 )}
-                                <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded text-[7px] font-bold text-white uppercase border border-white/10 z-20">Slide {activeSlideIndex + 1}/{formData.slides.length}</div>
                             </div>
                         )}
 
@@ -237,10 +245,29 @@ const BannerListPage = () => {
                             <form onSubmit={handleSubmit} className="space-y-5">
                                 <div className="space-y-3">
                                     <div className="flex items-center justify-between">
-                                        <label className="text-sm font-bold text-gray-800 uppercase tracking-tighter">Slides ({formData.slides.length})</label>
-                                        <div className="relative h-8 px-3 bg-primary/5 rounded-lg border border-primary/10 flex items-center justify-center cursor-pointer hover:bg-primary/10 transition-colors group">
-                                            <input type="file" onChange={handleAddSlide} accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" />
-                                            {uploadImageMutation.isPending ? <Loader size={14} className="animate-spin text-primary" /> : <div className="flex items-center gap-1.5"><Plus size={14} className="text-primary group-hover:scale-125 transition-transform" /><span className="text-[10px] font-bold text-primary">ADD</span></div>}
+                                        <label className="text-sm font-bold text-gray-800 uppercase tracking-tighter">Slide</label>
+                                        <div className={`relative h-8 px-3 rounded-lg border flex items-center justify-center transition-colors group ${
+                                            (formData.slides || []).length >= 1
+                                                ? 'bg-gray-100 border-gray-200 cursor-not-allowed'
+                                                : 'bg-primary/5 border border-primary/10 cursor-pointer hover:bg-primary/10'
+                                        }`}>
+                                            <input
+                                                type="file"
+                                                onChange={handleAddSlide}
+                                                accept="image/*"
+                                                className="absolute inset-0 opacity-0"
+                                                disabled={(formData.slides || []).length >= 1}
+                                            />
+                                            {uploadImageMutation.isPending ? (
+                                                <Loader size={14} className="animate-spin text-primary" />
+                                            ) : (
+                                                <div className="flex items-center gap-1.5">
+                                                    <Plus size={14} className={`${(formData.slides || []).length >= 1 ? 'text-gray-400' : 'text-primary group-hover:scale-125'} transition-transform`} />
+                                                    <span className={`text-[10px] font-bold ${(formData.slides || []).length >= 1 ? 'text-gray-400' : 'text-primary'}`}>
+                                                        ADD
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
@@ -375,12 +402,20 @@ const BannerListPage = () => {
                                     </div>
                                 )}
 
-                                <div className="flex gap-3 pt-2 text-left">
-                                    {isEditing && <button type="button" onClick={resetForm} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-[10px] font-black uppercase tracking-tighter py-3 rounded-xl transition-all">Discard</button>}
-                                    <button type="submit" disabled={addBannerMutation.isPending || updateBannerMutation.isPending || (formData.slides && formData.slides.length === 0)} className="flex-[2] bg-primary hover:bg-primaryDeep disabled:opacity-70 text-white text-[10px] font-black uppercase tracking-tighter py-3 rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2">
-                                        {(addBannerMutation.isPending || updateBannerMutation.isPending) ? <Loader size={16} className="animate-spin" /> : (isEditing ? 'Save Changes' : 'Publish Banner')}
-                                    </button>
-                                </div>
+                                {(isEditing || isCreating) && (
+                                    <div className="flex gap-3 pt-2 text-left">
+                                        <button
+                                            type="button"
+                                            onClick={resetForm}
+                                            className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-[10px] font-black uppercase tracking-tighter py-3 rounded-xl transition-all"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button type="submit" disabled={addBannerMutation.isPending || updateBannerMutation.isPending || (formData.slides && formData.slides.length === 0)} className="flex-[2] bg-primary hover:bg-primaryDeep disabled:opacity-70 text-white text-[10px] font-black uppercase tracking-tighter py-3 rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2">
+                                            {(addBannerMutation.isPending || updateBannerMutation.isPending) ? <Loader size={16} className="animate-spin" /> : (isEditing ? 'Save Changes' : 'Save Banner')}
+                                        </button>
+                                    </div>
+                                )}
                             </form>
                         ) : (
                             <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
@@ -449,7 +484,6 @@ const BannerListPage = () => {
                                 <div key={banner._id} className={`bg-white p-4 rounded-2xl shadow-sm border transition-all flex items-center gap-5 group ${editId === banner._id ? 'border-primary ring-4 ring-primary/5' : 'border-gray-50 hover:border-gray-200 hover:shadow-md'}`}>
                                     <div className="w-28 h-16 rounded-xl overflow-hidden bg-gray-50 shrink-0 relative border border-gray-100">
                                         <img src={banner.image || (banner.slides?.[0]?.image)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="" />
-                                        <div className="absolute top-1.5 left-1.5 bg-black/60 backdrop-blur-md text-white text-[8px] font-black px-1.5 py-0.5 rounded uppercase border border-white/10">{banner.slides?.length || 1} Slides</div>
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1">

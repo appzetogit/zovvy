@@ -1238,24 +1238,30 @@ const ProductDetailPage = () => {
                                         <table className="min-w-full text-sm md:text-base">
                                             <thead className="bg-gray-50 border-b border-gray-200">
                                                 <tr>
-                                                    <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-gray-500">Nutrient</th>
-                                                    <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-gray-500">Value</th>
+                                                    <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-gray-500">Nutritional Information (Approx)</th>
+                                                    <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-gray-500">Per 100g</th>
+                                                    <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-gray-500">% Daily Value per serve</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {(product.nutrition?.length ? product.nutrition : [
-                                                    { label: 'Energy', value: '579 kcal' },
-                                                    { label: 'Protein', value: '21.15 g' },
-                                                    { label: 'Total Fat', value: '49.93 g' },
-                                                    { label: 'Carbs', value: '21.55 g' }
+                                                    { label: 'Energy', per100g: '579 kcal', perServe: '-' },
+                                                    { label: 'Protein', per100g: '21.15 g', perServe: '-' },
+                                                    { label: 'Total Fat', per100g: '49.93 g', perServe: '-' },
+                                                    { label: 'Carbs', per100g: '21.55 g', perServe: '-' }
                                                 ]).map((stat, i, arr) => (
                                                     <tr key={i} className={i !== arr.length - 1 ? 'border-b border-gray-100' : ''}>
                                                         <td className="px-4 py-4 font-semibold text-gray-900">{stat.label}</td>
-                                                        <td className="px-4 py-4 text-primary font-bold">{stat.value}</td>
+                                                        <td className="px-4 py-4 text-primary font-bold">{stat.per100g || stat.value || '-'}</td>
+                                                        <td className="px-4 py-4 text-gray-700 font-bold">{stat.perServe || '-'}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
                                         </table>
+                                    </div>
+                                    <div className="px-4 py-4 border-t border-gray-200 bg-gray-50">
+                                        <p className="text-xs font-semibold text-gray-600">Percent Daily Values are based on a 2000 calorie diet.</p>
+                                        <p className="text-xs font-semibold text-gray-600 mt-1">Your Daily Values may be higher or lower depending on your calorie needs.</p>
                                     </div>
                                 </div>
                             )}

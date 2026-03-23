@@ -66,6 +66,12 @@ const HeroSection = () => {
         fetchPromoSettings();
     }, []);
 
+    const currentSlide = banners[currentIndex];
+    const currentPromoSettings = {
+        ...promoSettings,
+        ...(currentSlide?.promoCard || {})
+    };
+
     // Auto-slide
     useEffect(() => {
         if (banners.length === 0) return;
@@ -80,8 +86,6 @@ const HeroSection = () => {
 
     // Fallback if no banners
     if (banners.length === 0) return null;
-
-    const currentSlide = banners[currentIndex];
 
     // Safety check for undefined slide
     if (!currentSlide) return null;
@@ -178,30 +182,30 @@ const HeroSection = () => {
                     </div>
 
                     {/* Dynamic Right Side Offer Box - Conditionally Rendered */}
-                    {promoSettings.isVisible && (
+                    {currentPromoSettings.isVisible && (
                         <div className="hidden lg:flex flex-col items-center justify-center border border-white/60 bg-white/80 backdrop-blur-xl p-5 md:p-6 rounded-2xl shadow-2xl z-20 absolute right-20 top-1/2 -translate-y-1/2 transition-all duration-500 hover:scale-105">
                             <div className="absolute -top-3 -right-3 bg-offerRed text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg animate-bounce uppercase tracking-tighter">
-                                {promoSettings.topBadge}
+                                {currentPromoSettings.topBadge}
                             </div>
                             <div className="text-center font-sans">
-                                <p className="text-footerBg/60 font-black text-[9px] uppercase tracking-[0.2em]">{promoSettings.badgeText1}</p>
+                                <p className="text-footerBg/60 font-black text-[9px] uppercase tracking-[0.2em]">{currentPromoSettings.badgeText1}</p>
                                 <div className="flex items-baseline gap-0.5 justify-center leading-none my-1">
-                                    <span className="text-5xl font-black text-offerRed tracking-tighter">{promoSettings.discountTitle}</span>
+                                    <span className="text-5xl font-black text-offerRed tracking-tighter">{currentPromoSettings.discountTitle}</span>
                                     <div className="flex flex-col items-start translate-y-1">
-                                        <span className="text-xl font-black text-footerBg">{promoSettings.discountSuffix}</span>
-                                        <span className="text-[9px] font-bold text-footerBg/70 uppercase">{promoSettings.discountLabel}</span>
+                                        <span className="text-xl font-black text-footerBg">{currentPromoSettings.discountSuffix}</span>
+                                        <span className="text-[9px] font-bold text-footerBg/70 uppercase">{currentPromoSettings.discountLabel}</span>
                                     </div>
                                 </div>
                                 <div className="w-10 h-1 bg-primary/30 mx-auto rounded-full my-2"></div>
-                                <p className="text-footerBg/60 font-black text-[9px] uppercase tracking-[0.2em]">{promoSettings.extraDiscountSubtitle}</p>
+                                <p className="text-footerBg/60 font-black text-[9px] uppercase tracking-[0.2em]">{currentPromoSettings.extraDiscountSubtitle}</p>
                                 <div className="flex items-baseline gap-0.5 justify-center leading-none mt-1">
-                                    <span className="text-3xl font-black text-primary">{promoSettings.extraDiscount}</span>
-                                    <span className="text-lg font-bold text-footerBg">{promoSettings.extraDiscountSuffix}</span>
+                                    <span className="text-3xl font-black text-primary">{currentPromoSettings.extraDiscount}</span>
+                                    <span className="text-lg font-bold text-footerBg">{currentPromoSettings.extraDiscountSuffix}</span>
                                 </div>
                             </div>
-                            {promoSettings.showCouponCode && (
+                            {currentPromoSettings.showCouponCode && (
                                 <div className="mt-5 bg-footerBg text-white px-5 py-2 rounded-lg text-xs font-black tracking-widest border border-white/20 select-all cursor-pointer hover:bg-primary transition-colors">
-                                    {promoSettings.couponCode}
+                                    {currentPromoSettings.couponCode}
                                 </div>
                             )}
                         </div>
