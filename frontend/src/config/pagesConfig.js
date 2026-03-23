@@ -10,7 +10,6 @@ export const PAGES_CONFIG = {
 
     // Informational
     'about-us': { title: 'About Us', category: 'Info' },
-    'contact-us': { title: 'Contact Us', category: 'Info' },
     'how-to-order': { title: 'How to Order', category: 'Info' },
     'size-guide': { title: 'Size Guide', category: 'Info' },
     'payment-methods': { title: 'Payment Methods', category: 'Info' }

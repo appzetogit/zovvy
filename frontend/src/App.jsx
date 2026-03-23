@@ -70,6 +70,7 @@ import PushNotificationPage from './modules/admin/pages/PushNotificationPage'; /
 import BlogListPage from './modules/admin/pages/BlogListPage'; // New Page 
 import BlogFormPage from './modules/admin/pages/BlogFormPage'; // New Page
 import BlogDetailPage from './modules/user/pages/BlogDetailPage'; // New Page
+import ContactSubmissionsPage from './modules/admin/pages/ContactSubmissionsPage';
 import ProtectedRoute from './components/ProtectedRoute'; // Auth Guard
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -181,6 +182,7 @@ function App() {
                 <Route path="pages/:pageId" element={<StaticPageEditor />} />
                 <Route path="settings" element={<SettingsPage />} />
                 <Route path="notifications" element={<PushNotificationPage />} />
+                <Route path="contact-submissions" element={<ContactSubmissionsPage />} />
                 <Route path="reviews" element={<AdminReviewsPage />} />
                 <Route path="reels" element={<ReelsPage />} />
                 <Route path="blogs" element={<BlogListPage />} />

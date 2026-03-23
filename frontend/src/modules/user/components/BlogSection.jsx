@@ -35,7 +35,7 @@ const BlogSection = () => {
 
     return (
         <section className="bg-white pt-12 pb-2 md:pt-16 md:pb-4 overflow-hidden">
-            <div className="container mx-auto px-4 md:px-24">
+            <div className="container mx-auto px-4 md:px-8 lg:px-16">
                 {/* Section Header */}
                 <div className="text-center mb-8 md:mb-14">
                     <h2 className="text-2xl md:text-4xl font-['Poppins'] font-bold text-gray-900 mb-3">
@@ -49,20 +49,20 @@ const BlogSection = () => {
                     {/* Left Navigation Button */}
                     <button
                         onClick={() => scroll('left')}
-                        className="absolute -left-2 md:-left-20 top-1/2 -translate-y-1/2 z-20 bg-white shadow-lg p-3 rounded-full text-footerBg hover:bg-primary hover:text-white transition-all active:scale-90 border border-gray-100 hidden md:flex items-center justify-center"
+                        className="absolute -left-2 top-1/2 -translate-y-1/2 z-20 bg-white shadow-lg p-3 rounded-full text-footerBg hover:bg-primary hover:text-white transition-all active:scale-90 border border-gray-100 hidden max-md:flex items-center justify-center"
                     >
                         <ChevronLeft size={24} />
                     </button>
 
                     <div
                         ref={scrollRef}
-                        className="flex gap-6 md:gap-8 overflow-x-auto no-scrollbar scroll-smooth pb-8"
+                        className="flex md:grid md:grid-cols-3 gap-6 md:gap-8 overflow-x-auto md:overflow-visible no-scrollbar scroll-smooth pb-8"
                     >
                         {blogPosts.map((post) => (
                             <motion.div
                                 key={post._id || post.id}
                                 whileHover={{ y: -5 }}
-                                className="flex-shrink-0 w-[280px] md:w-[400px] relative mt-4 mb-4"
+                                className="flex-shrink-0 w-[280px] sm:w-[calc(50%-12px)] md:w-auto relative mt-4 mb-4"
                             >
                                 <Link to={`/blog/${post.slug}`}>
                                     {/* Image Container (Background Layer) */}
@@ -144,7 +144,7 @@ const BlogSection = () => {
                     {/* Right Navigation Button */}
                     <button
                         onClick={() => scroll('right')}
-                        className="absolute -right-2 md:-right-20 top-1/2 -translate-y-1/2 z-20 bg-white shadow-lg p-3 rounded-full text-footerBg hover:bg-primary hover:text-white transition-all active:scale-90 border border-gray-100 hidden md:flex items-center justify-center"
+                        className="absolute -right-2 top-1/2 -translate-y-1/2 z-20 bg-white shadow-lg p-3 rounded-full text-footerBg hover:bg-primary hover:text-white transition-all active:scale-90 border border-gray-100 hidden max-md:flex items-center justify-center"
                     >
                         <ChevronRight size={24} />
                     </button>

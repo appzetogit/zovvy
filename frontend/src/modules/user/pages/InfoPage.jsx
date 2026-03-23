@@ -1,10 +1,21 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Phone, MapPin } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useWebsiteContent } from '../../../hooks/useContent';
+import { useCreateContactSubmission } from '../../../hooks/useContactSubmissions';
 
 const InfoPage = ({ type }) => {
     const { data: pageData, isLoading } = useWebsiteContent(type);
+    const { data: footerData } = useWebsiteContent('footer-config');
+    const isStaticContactPage = type === 'contact-us';
+    const createContactSubmission = useCreateContactSubmission();
+    const [contactForm, setContactForm] = React.useState({
+        name: '',
+        phone: '',
+        email: '',
+        message: ''
+    });
 
     // Default Fallback Content Config
     const defaultContentMap = {
@@ -102,17 +113,80 @@ const InfoPage = ({ type }) => {
     };
 
     const config = defaultContentMap[type] || defaultContentMap['about-us'];
+    const footerContact = footerData?.content?.contact || {};
+    const contactAddress = footerContact.address || 'Office No 501, Princess center, 5th Floor, New Palasia, Indore, Madhya Pradesh 452001';
+    const contactPhone = footerContact.phone || '+91 98765 43210';
+    const contactEmail = footerContact.email || 'hello@farmlyf.com';
 
-    if (isLoading) return (
+    const handleContactFieldChange = (field) => (event) => {
+        const rawValue = event.target.value;
+
+        if (field === 'phone') {
+            const digitsOnly = rawValue.replace(/\D/g, '').slice(0, 10);
+            setContactForm((prev) => ({ ...prev, [field]: digitsOnly }));
+            return;
+        }
+
+        setContactForm((prev) => ({ ...prev, [field]: rawValue }));
+    };
+
+    const handleContactSubmit = async (event) => {
+        event.preventDefault();
+
+        const trimmedName = contactForm.name.trim();
+        const trimmedPhone = contactForm.phone.trim();
+        const trimmedEmail = contactForm.email.trim();
+        const trimmedMessage = contactForm.message.trim();
+
+        if (!trimmedName || !trimmedPhone || !trimmedEmail || !trimmedMessage) {
+            toast.error('Please fill in all contact form fields.');
+            return;
+        }
+
+        if (!/^[A-Za-z][A-Za-z\s.'-]{1,119}$/.test(trimmedName)) {
+            toast.error('Please enter a valid name.');
+            return;
+        }
+
+        if (!/^\d{10}$/.test(trimmedPhone)) {
+            toast.error('Please enter a valid 10-digit phone number.');
+            return;
+        }
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+            toast.error('Please enter a valid email address.');
+            return;
+        }
+
+        try {
+            await createContactSubmission.mutateAsync({
+                name: trimmedName,
+                phone: trimmedPhone,
+                email: trimmedEmail,
+                message: trimmedMessage
+            });
+
+            setContactForm({
+                name: '',
+                phone: '',
+                email: '',
+                message: ''
+            });
+        } catch {
+            // Toast is handled in the mutation hook.
+        }
+    };
+
+    if (isLoading && !isStaticContactPage) return (
         <div className="min-h-screen flex items-center justify-center">
             <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
         </div>
     );
 
-    const displayTitle = pageData?.title || config.title;
-    const displaySubtitle = pageData?.subtitle || config.subtitle;
+    const displayTitle = isStaticContactPage ? config.title : (pageData?.title || config.title);
+    const displaySubtitle = isStaticContactPage ? config.subtitle : (pageData?.subtitle || config.subtitle);
     // content can be a string (HTML from Quill) or fallback JSX
-    const displayContent = pageData?.content ? (
+    const displayContent = !isStaticContactPage && pageData?.content ? (
         <div
             className="quill-content w-full break-words text-gray-600"
             dangerouslySetInnerHTML={{ __html: pageData.content }}
@@ -132,7 +206,119 @@ const InfoPage = ({ type }) => {
                 </div>
 
                 <div className="w-full">
-                    {displayContent}
+                    {isStaticContactPage ? (
+                        <div className="max-w-4xl mx-auto space-y-10">
+                            <div className="grid md:grid-cols-2 gap-10 items-start">
+                                <div className="space-y-8">
+                                    <div>
+                                        <h3 className="text-2xl font-bold text-footerBg mb-3">Get in Touch</h3>
+                                        <p className="text-gray-600 text-sm leading-relaxed">
+                                            Have a question about your order, want to partner with us, or simply want to say hello?
+                                            We are always ready to help.
+                                        </p>
+                                    </div>
+                                    <div className="space-y-5">
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary shrink-0">
+                                                <MapPin size={18} />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-footerBg text-sm">Visit Us</h4>
+                                                <p className="text-gray-500 text-sm mt-1 leading-relaxed whitespace-pre-line">
+                                                    {contactAddress}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary shrink-0">
+                                                <Phone size={18} />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-footerBg text-sm">Call Us</h4>
+                                                <p className="text-gray-500 text-sm mt-1 leading-relaxed">
+                                                    {contactPhone}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary shrink-0">
+                                                <Mail size={18} />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-footerBg text-sm">Email Us</h4>
+                                                <div className="text-gray-500 text-sm mt-1 space-y-0.5">
+                                                    <p>{contactEmail}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                                    <h3 className="text-lg font-bold text-footerBg mb-4">Send a Message</h3>
+                                    <form className="space-y-3" onSubmit={handleContactSubmit}>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <input
+                                                type="text"
+                                                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all text-sm"
+                                                placeholder="Name"
+                                                value={contactForm.name}
+                                                onChange={handleContactFieldChange('name')}
+                                                disabled={createContactSubmission.isPending}
+                                                required
+                                                maxLength={120}
+                                                autoComplete="name"
+                                                pattern="[A-Za-z][A-Za-z\s.'-]{1,119}"
+                                                title="Enter a valid name using letters and spaces only."
+                                            />
+                                            <input
+                                                type="tel"
+                                                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all text-sm"
+                                                placeholder="Phone"
+                                                value={contactForm.phone}
+                                                onChange={handleContactFieldChange('phone')}
+                                                disabled={createContactSubmission.isPending}
+                                                required
+                                                maxLength={10}
+                                                autoComplete="tel"
+                                                inputMode="tel"
+                                                pattern="\d{10}"
+                                                title="Enter a 10-digit phone number."
+                                            />
+                                        </div>
+                                        <input
+                                            type="email"
+                                            className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all text-sm"
+                                            placeholder="Email Address"
+                                            value={contactForm.email}
+                                            onChange={handleContactFieldChange('email')}
+                                            disabled={createContactSubmission.isPending}
+                                            required
+                                            maxLength={160}
+                                            autoComplete="email"
+                                        />
+                                        <textarea
+                                            rows="3"
+                                            className="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all resize-none text-sm"
+                                            placeholder="Your Message"
+                                            value={contactForm.message}
+                                            onChange={handleContactFieldChange('message')}
+                                            disabled={createContactSubmission.isPending}
+                                            required
+                                            minLength={5}
+                                            maxLength={5000}
+                                        />
+                                        <button
+                                            type="submit"
+                                            className="w-full bg-footerBg hover:bg-primary text-white py-3 rounded-xl font-bold uppercase text-xs tracking-widest transition-all shadow-md hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                                            disabled={createContactSubmission.isPending}
+                                        >
+                                            {createContactSubmission.isPending ? 'Sending...' : 'Send Message'}
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    ) : displayContent}
                 </div>
             </motion.div>
 

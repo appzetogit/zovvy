@@ -39,6 +39,7 @@ import {
     HelpCircle,
     User,
     Bell,
+    Mail,
     Globe,
     Tag
 } from 'lucide-react';
@@ -372,7 +373,6 @@ const AdminSidebar = () => {
                                 <div className="space-y-1">
                                     {[
                                         { name: 'About Us', id: 'about-us', icon: Info },
-                                        { name: 'Contact Us', id: 'contact-us', icon: Info },
                                         { name: 'How to Order', id: 'how-to-order', icon: Info },
                                         { name: 'Size Guide', id: 'size-guide', icon: Info },
                                         { name: 'Payment Methods', id: 'payment-methods', icon: Info },
@@ -452,6 +452,17 @@ const AdminSidebar = () => {
                 >
                     <Layout size={20} strokeWidth={isDirectItemHighlighted('/admin/manage-footer') ? 2.5 : 2} />
                     <span className="font-bold text-sm">Footer</span>
+                </Link>
+
+                <Link
+                    to="/admin/contact-submissions"
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all mt-1 ${isDirectItemHighlighted('/admin/contact-submissions')
+                        ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                        : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                        }`}
+                >
+                    <Mail size={20} strokeWidth={isDirectItemHighlighted('/admin/contact-submissions') ? 2.5 : 2} />
+                    <span className="font-bold text-sm">Contact Form</span>
                 </Link>
 
                 {/* Reviews Section - Expandable */}
