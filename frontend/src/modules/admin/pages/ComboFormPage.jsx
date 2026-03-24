@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft,
@@ -9,16 +9,13 @@ import {
     Tag as TagIcon,
     Package,
     Info,
-    ChevronRight,
     Search,
     Gift,
     Star
 } from 'lucide-react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
-import { useProducts, useProduct, useAddProduct, useUpdateProduct, useCategories, useSubCategories, useUploadImage, useComboCategories } from '../../../hooks/useProducts';
-import { useQueryClient, useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
+import { useProducts, useProduct, useAddProduct, useUpdateProduct, useUploadImage, useComboCategories } from '../../../hooks/useProducts';
 import toast from 'react-hot-toast';
 
 // Predefined Options
@@ -51,16 +48,44 @@ const BENEFIT_TITLES = [
     'Perfect for Gifting', 'Value for Money', 'Assorted Flavors', 'Complete Nutrition', 'Family Pack', 'Travel Friendly', 'Festival Special'
 ];
 
+const SuggestionInput = ({ value, onChange, placeholder, options }) => {
+    const [show, setShow] = useState(false);
+
+    return (
+        <div className="relative w-full group/combo z-10 focus-within:z-[120]">
+            <input
+                type="text"
+                value={value}
+                onChange={onChange}
+                onFocus={() => setShow(true)}
+                onBlur={() => setTimeout(() => setShow(false), 200)}
+                placeholder={placeholder}
+                className="w-full bg-white border border-gray-300 rounded-xl p-3 text-xs font-bold text-black outline-none focus:border-black transition-all"
+            />
+            {show && (
+                <div className="absolute top-full left-0 mt-1 w-[20rem] max-w-[32rem] bg-white border border-gray-200 rounded-xl shadow-xl max-h-48 overflow-y-auto z-[130]">
+                    {options.filter((option) => option.toLowerCase().includes(value.toLowerCase())).map((option, index) => (
+                        <div
+                            key={index}
+                            className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-xs font-medium text-gray-700"
+                            onMouseDown={() => onChange({ target: { value: option } })}
+                        >
+                            {option}
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
 const ComboFormPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const queryClient = useQueryClient();
 
     // Data Hooks
     const { data: allProducts = [] } = useProducts();
     const { data: productToEdit } = useProduct(id);
-    const { data: dbCategories = [] } = useCategories();
-    const { data: dbSubCategories = [] } = useSubCategories();
 
     // Fetch Combo Categories from centralized hook
     const { data: comboCategories = [] } = useComboCategories();
@@ -96,7 +121,12 @@ const ComboFormPage = () => {
         faqs: [
             { q: 'Can I customize this?', a: 'Currently pre-packed only.' }
         ],
-        nutrition: [],
+        nutrition: [
+            { label: 'Energy', per100g: '', perServe: '' },
+            { label: 'Protein', per100g: '', perServe: '' },
+            { label: 'Total Fat', per100g: '', perServe: '' },
+            { label: 'Carbohydrate', per100g: '', perServe: '' }
+        ],
         contents: [] // { productId, productName, variant, quantity }
     });
 
@@ -104,27 +134,35 @@ const ComboFormPage = () => {
     useEffect(() => {
         if (isEdit && productToEdit) {
             // Normalizations similar to ProductFormPage
-            let normalizedNutrition = productToEdit.nutrition;
+            let normalizedNutrition = productToEdit.nutrition || [];
             if (productToEdit.nutrition && !Array.isArray(productToEdit.nutrition)) {
                 normalizedNutrition = Object.entries(productToEdit.nutrition).map(([key, value]) => ({
                     label: key.charAt(0).toUpperCase() + key.slice(1),
-                    value
+                    per100g: String(value),
+                    perServe: ''
                 }));
             }
+
+            normalizedNutrition = normalizedNutrition.map((item) => ({
+                label: item.label || '',
+                per100g: item.per100g || item.value || '',
+                perServe: item.perServe || item.dailyValue || ''
+            }));
 
             let normalizedBenefits = productToEdit.benefits || [];
             if (normalizedBenefits.length > 0 && typeof normalizedBenefits[0] === 'string') {
                 normalizedBenefits = normalizedBenefits.map(b => ({ title: b, description: '' }));
             }
 
-            setFormData({
+            setFormData((prev) => ({
+                ...prev,
                 ...productToEdit,
                 variants: productToEdit.variants?.map(v => ({ ...v, sku: v.sku || '' })) || [],
-                nutrition: normalizedNutrition || [],
+                nutrition: normalizedNutrition.length ? normalizedNutrition : prev.nutrition,
                 contents: productToEdit.contents || [],
                 benefits: normalizedBenefits,
                 images: productToEdit.images || []
-            });
+            }));
         }
     }, [isEdit, productToEdit]);
 
@@ -380,6 +418,9 @@ const ComboFormPage = () => {
                                         }}
                                     />
                                 </div>
+                                <p className="text-[11px] font-semibold text-gray-500 leading-relaxed px-1">
+                                    This static paragraph stays visible below the combo description editor, just like the product form guidance section.
+                                </p>
                             </div>
 
                             {/* Benefits */}
@@ -450,6 +491,68 @@ const ComboFormPage = () => {
                                     ))}
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    <div className="relative overflow-visible bg-white p-8 rounded-[2.5rem] border border-gray-300 shadow-sm space-y-6 text-left z-30">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-black text-green-700 uppercase tracking-widest flex items-center gap-2">
+                                Nutrition
+                            </h3>
+                            <button
+                                type="button"
+                                onClick={() => addItem('nutrition', { label: '', per100g: '', perServe: '' })}
+                                className="text-[10px] font-black text-primary uppercase"
+                            >
+                                + Add
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_auto] gap-3 px-1 text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                            <span>Nutritional Information (Approx)</span>
+                            <span>Per 100g</span>
+                            <span>% Daily Value / Per Serve</span>
+                            <span></span>
+                        </div>
+
+                        <div className="space-y-3">
+                            {Array.isArray(formData.nutrition) && formData.nutrition.map((nut, idx) => (
+                                <div key={idx} className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_auto] gap-3 items-center relative z-10 focus-within:z-[110]">
+                                    <div className="relative">
+                                        <SuggestionInput
+                                            value={nut.label}
+                                            onChange={(e) => updateItem('nutrition', idx, 'label', e.target.value)}
+                                            placeholder="Nutrient"
+                                            options={NUTRITION_LABELS}
+                                        />
+                                    </div>
+                                    <input
+                                        placeholder="Per 100g"
+                                        value={nut.per100g || ''}
+                                        onChange={(e) => updateItem('nutrition', idx, 'per100g', e.target.value)}
+                                        className="w-full bg-white border border-gray-300 rounded-xl p-3 text-xs font-bold text-black outline-none focus:border-black transition-all"
+                                    />
+                                    <input
+                                        placeholder="Per serve / %DV"
+                                        value={nut.perServe || ''}
+                                        onChange={(e) => updateItem('nutrition', idx, 'perServe', e.target.value)}
+                                        className="w-full bg-white border border-gray-300 rounded-xl p-3 text-xs font-bold text-black outline-none focus:border-black transition-all"
+                                    />
+                                    <button type="button" onClick={() => removeItem('nutrition', idx)} className="text-red-400 hover:text-red-600">
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            ))}
+                            {(!Array.isArray(formData.nutrition) || formData.nutrition.length === 0) && (
+                                <div className="text-center py-6 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">No data</p>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="px-1 pt-4 border-t border-gray-200">
+                            <p className="text-xs font-semibold text-gray-600">Percent Daily Values are based on a 2000 calorie diet.</p>
+                            <p className="text-xs font-semibold text-gray-600 mt-1">Your Daily Values may be higher or lower depending on your calorie needs.</p>
                         </div>
                     </div>
 
@@ -774,46 +877,6 @@ const ComboFormPage = () => {
                                     }
                                 </select>
                             </div>
-                        </div>
-                    </div>
-
-                    {/* Nutrition - Moved to Right Side */}
-                    <div className="bg-white p-8 rounded-[2.5rem] border border-gray-300 shadow-sm space-y-6 text-left">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-black text-green-700 uppercase tracking-widest flex items-center gap-2">
-                                Nutrition (Per 100g)
-                            </h3>
-                            <button type="button" onClick={() => addItem('nutrition', { label: '', value: '' })} className="text-[10px] font-black text-primary uppercase">+ Add</button>
-                        </div>
-                        <div className="space-y-3">
-                            {Array.isArray(formData.nutrition) && formData.nutrition.map((nut, idx) => (
-                                <div key={idx} className="flex gap-2 items-center">
-                                    <div className="w-1/3 relative">
-                                        <input
-                                            list={`nutrition-options-${idx}`}
-                                            placeholder="Label"
-                                            value={nut.label}
-                                            onChange={(e) => updateItem('nutrition', idx, 'label', e.target.value)}
-                                            className="w-full bg-white border border-gray-300 rounded-xl p-3 text-xs font-bold text-black outline-none focus:border-black transition-all"
-                                        />
-                                        <datalist id={`nutrition-options-${idx}`}>
-                                            {NUTRITION_LABELS.map((opt, i) => <option key={i} value={opt} />)}
-                                        </datalist>
-                                    </div>
-                                    <input
-                                        placeholder="Value"
-                                        value={nut.value}
-                                        onChange={(e) => updateItem('nutrition', idx, 'value', e.target.value)}
-                                        className="flex-1 bg-white border border-gray-300 rounded-xl p-3 text-xs font-bold text-black outline-none focus:border-black transition-all"
-                                    />
-                                    <button type="button" onClick={() => removeItem('nutrition', idx)} className="text-red-400 hover:text-red-600"><Trash2 size={16} /></button>
-                                </div>
-                            ))}
-                            {(!Array.isArray(formData.nutrition) || formData.nutrition.length === 0) && (
-                                <div className="text-center py-6 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">No data</p>
-                                </div>
-                            )}
                         </div>
                     </div>
 

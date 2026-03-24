@@ -16,6 +16,7 @@ const variantSchema = new mongoose.Schema({
 const contentSchema = new mongoose.Schema({
   productId: String,
   productName: String,
+  variant: String,
   quantity: String
 }, { _id: false });
 
