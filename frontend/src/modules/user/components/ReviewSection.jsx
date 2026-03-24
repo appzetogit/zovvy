@@ -33,7 +33,10 @@ const ReviewSection = () => {
         <section className="mt-10 md:mt-20">
             {/* Section Header - Outside Background */}
             <div className="container mx-auto px-4 md:px-12 text-center mb-8 md:mb-14">
-                <h2 className="text-2xl md:text-4xl font-['Poppins'] font-bold mb-3 text-gray-900">Customer Reviews</h2>
+                <h2 className="text-2xl md:text-4xl font-['Poppins'] font-bold mb-3 text-gray-900">
+                    Customer <span className="text-primary">Reviews</span>
+                </h2>
+                <div className="w-24 md:w-32 h-1 bg-primary mx-auto rounded-full mb-4" />
                 <p className="text-gray-600 text-sm md:text-base max-w-2xl mx-auto font-medium">
                     See what our happy customers have to say about their healthy journey with us
                 </p>

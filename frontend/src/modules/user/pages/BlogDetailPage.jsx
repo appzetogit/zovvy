@@ -69,7 +69,7 @@ const BlogDetailPage = () => {
             <div className="container mx-auto px-4 md:px-0 py-5 md:py-12 overflow-x-hidden">
                 <div className="max-w-6xl mx-auto w-full">
                     <Link
-                        to="/"
+                        to="/blogs"
                         className="inline-flex items-center gap-2 text-gray-500 hover:text-black mb-4 transition-colors group"
                     >
                         <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />

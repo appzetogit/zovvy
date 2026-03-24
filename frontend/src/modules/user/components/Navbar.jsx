@@ -207,7 +207,7 @@ const Navbar = () => {
     };
 
     return (
-        <nav className="bg-white sticky top-0 md:relative border-b border-gray-100 py-2.5 md:py-4 px-4 md:px-12" style={{ zIndex: 10005 }}>
+        <nav className="bg-white border-b border-gray-100 py-2.5 md:py-4 px-4 md:px-12" style={{ zIndex: 10005 }}>
             {/* Desktop View Header */}
             <div className="hidden md:flex justify-between items-center gap-4 md:gap-8">
                 {/* Logo */}

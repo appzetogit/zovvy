@@ -95,11 +95,11 @@ const CategoryStrip = () => {
                         initial={{ opacity: 0, y: 10 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 }}
-                        className="text-2xl md:text-4xl font-['Poppins'] font-bold text-footerBg tracking-tight"
+                        className="text-2xl md:text-4xl font-['Poppins'] font-bold text-gray-900 tracking-tight"
                     >
                         Shop By <span className="text-primary">Category</span>
                     </motion.h2>
-                    <div className="w-32 md:w-48 h-1 bg-primary mx-auto rounded-full mt-2" />
+                    <div className="w-24 md:w-32 h-1 bg-primary mx-auto rounded-full mt-2" />
                 </div>
 
                 <div className="relative flex items-center group">

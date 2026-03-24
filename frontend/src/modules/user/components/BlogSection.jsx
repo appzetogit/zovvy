@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronRight, ChevronLeft, Share2 } from 'lucide-react';
+import { ArrowRight, ChevronRight, ChevronLeft, Share2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useBlogs } from '../../../hooks/useContent';
 import toast from 'react-hot-toast';
@@ -11,6 +11,9 @@ import logoImg from '../../../assets/zovvy-logo.png';
 const BlogSection = () => {
     const scrollRef = useRef(null);
     const { data: blogPosts = [], isLoading } = useBlogs();
+    const latestBlogs = blogPosts
+        .filter((post) => post.status === 'Published')
+        .slice(0, 3);
 
     const scroll = (direction) => {
         if (scrollRef.current) {
@@ -29,7 +32,7 @@ const BlogSection = () => {
         );
     }
 
-    if (blogPosts.length === 0) {
+    if (latestBlogs.length === 0) {
         return null; // Or show a placeholder
     }
 
@@ -37,11 +40,20 @@ const BlogSection = () => {
         <section className="bg-white pt-12 pb-2 md:pt-16 md:pb-4 overflow-hidden">
             <div className="container mx-auto px-4 md:px-8 lg:px-16">
                 {/* Section Header */}
-                <div className="text-center mb-8 md:mb-14">
+                <div className="mb-8 md:mb-14 flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:relative">
+                    <div className="flex-1 text-center">
                     <h2 className="text-2xl md:text-4xl font-['Poppins'] font-bold text-gray-900 mb-3">
                         Our Recent <span className="text-primary">Blogs</span>
                     </h2>
-                    <div className="w-24 md:w-32 h-1 bg-primary mx-auto rounded-full" />
+                        <div className="w-24 md:w-32 h-1 bg-primary mx-auto rounded-full" />
+                    </div>
+                    <Link
+                        to="/blogs"
+                        className="inline-flex items-center justify-center gap-1.5 self-end md:self-auto md:absolute md:right-0 md:bottom-0 rounded-full border border-gray-200 px-3.5 py-2 text-xs md:px-5 md:py-2.5 md:text-sm font-semibold text-gray-900 transition-all hover:border-primary hover:text-primary"
+                    >
+                        View all
+                        <ArrowRight size={14} className="md:w-4 md:h-4" />
+                    </Link>
                 </div>
 
                 {/* Slider Container */}
@@ -58,7 +70,7 @@ const BlogSection = () => {
                         ref={scrollRef}
                         className="flex md:grid md:grid-cols-3 gap-6 md:gap-8 overflow-x-auto md:overflow-visible no-scrollbar scroll-smooth pb-8"
                     >
-                        {blogPosts.map((post) => (
+                        {latestBlogs.map((post) => (
                             <motion.div
                                 key={post._id || post.id}
                                 whileHover={{ y: -5 }}

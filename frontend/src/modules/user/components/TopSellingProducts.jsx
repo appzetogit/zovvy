@@ -43,11 +43,11 @@ const TopSellingProducts = () => {
                     <motion.h2
                         initial={{ opacity: 0, y: 10 }}
                         whileInView={{ opacity: 1, y: 0 }}
-                        className="text-2xl md:text-4xl font-['Poppins'] font-bold text-footerBg tracking-tight"
+                        className="text-2xl md:text-4xl font-['Poppins'] font-bold text-gray-900 tracking-tight"
                     >
                         Top Selling <span className="text-primary">Products</span>
                     </motion.h2>
-                    <div className="w-40 md:w-72 h-1.5 bg-primary mx-auto rounded-full mt-2" />
+                    <div className="w-24 md:w-32 h-1 bg-primary mx-auto rounded-full mt-2" />
                 </div>
 
                 <div className="relative">

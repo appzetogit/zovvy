@@ -204,7 +204,7 @@ const InfoPage = ({ type: propType }) => {
                 className="w-full max-w-7xl mx-auto"
             >
                 <div className="text-center mb-6 md:mb-8">
-                    <h1 className="text-2xl md:text-3xl lg:text-5xl font-black text-footerBg uppercase tracking-tighter mb-2">{displayTitle}</h1>
+                    <h1 className="text-xl md:text-2xl lg:text-4xl font-black text-footerBg uppercase tracking-tighter mb-2">{displayTitle}</h1>
                     {displaySubtitle && <p className="text-primary font-black tracking-[0.2em] uppercase text-[10px] md:text-xs">{displaySubtitle}</p>}
                 </div>
 

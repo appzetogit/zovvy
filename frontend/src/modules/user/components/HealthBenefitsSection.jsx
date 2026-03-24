@@ -19,6 +19,26 @@ const HealthBenefitsSection = ({ data }) => {
     if (isLoading) return <div className="h-96 flex items-center justify-center">Loading Health Benefits...</div>;
     if (!fetchedData || !fetchedData.benefits) return null;
 
+    const renderSectionTitle = (title) => {
+        if (!title) return null;
+
+        const benefitIndex = title.toLowerCase().lastIndexOf('benefits');
+
+        if (benefitIndex === -1) {
+            return title;
+        }
+
+        const prefix = title.slice(0, benefitIndex);
+        const highlighted = title.slice(benefitIndex);
+
+        return (
+            <>
+                {prefix}
+                <span className="text-primary">{highlighted}</span>
+            </>
+        );
+    };
+
     const sectionData = {
         ...fetchedData,
         benefits: fetchedData.benefits.map(b => {
@@ -76,10 +96,11 @@ const HealthBenefitsSection = ({ data }) => {
                         initial={{ opacity: 0, y: 10 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="text-2xl md:text-4xl font-['Poppins'] font-bold text-footerBg leading-tight"
+                        className="text-2xl md:text-4xl font-['Poppins'] font-bold text-gray-900 leading-tight"
                     >
-                        {sectionData.title}
+                        {renderSectionTitle(sectionData.title)}
                     </motion.h2>
+                    <div className="w-24 md:w-32 h-1 bg-primary mx-auto rounded-full" />
                     <motion.p
                         initial={{ opacity: 0, y: 10 }}
                         whileInView={{ opacity: 1, y: 0 }}

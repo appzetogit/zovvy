@@ -39,10 +39,11 @@ const AboutSection = () => {
                         <motion.h2
                             initial={{ opacity: 0, y: 10 }}
                             whileInView={{ opacity: 1, y: 0 }}
-                            className="text-2xl font-['Poppins'] font-bold text-footerBg leading-tight"
+                            className="text-2xl font-['Poppins'] font-bold text-gray-900 leading-tight"
                         >
                             {displayData.title} <span className="text-primary">{displayData.highlightedTitle}</span>
                         </motion.h2>
+                        <div className="w-24 h-1 bg-primary mx-auto rounded-full" />
                     </div>
 
                     <div className="flex flex-col lg:flex-row items-center gap-8 md:gap-16">
@@ -82,7 +83,7 @@ const AboutSection = () => {
 
                         {/* Right Side: Content (No Card) */}
                         <div className="lg:w-1/2 py-2 md:py-12 flex flex-col justify-center space-y-4 md:space-y-8">
-                            <div className="hidden md:block space-y-3 md:space-y-4">
+                            <div className="hidden md:block space-y-3 md:space-y-4 text-center">
                                 <motion.h3
                                     initial={{ opacity: 0, x: 20 }}
                                     whileInView={{ opacity: 1, x: 0 }}
@@ -94,10 +95,11 @@ const AboutSection = () => {
                                     initial={{ opacity: 0, x: 20 }}
                                     whileInView={{ opacity: 1, x: 0 }}
                                     transition={{ delay: 0.1 }}
-                                    className="text-2xl md:text-4xl font-['Poppins'] font-bold text-footerBg leading-tight"
+                                    className="text-2xl md:text-4xl font-['Poppins'] font-bold text-gray-900 leading-tight"
                                 >
                                     {displayData.title} <span className="text-primary">{displayData.highlightedTitle}</span>
                                 </motion.h2>
+                                <div className="w-24 md:w-32 h-1 bg-primary mx-auto rounded-full" />
                             </div>
 
                             <div className="space-y-4">

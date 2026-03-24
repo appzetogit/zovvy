@@ -70,6 +70,7 @@ import PushNotificationPage from './modules/admin/pages/PushNotificationPage'; /
 import BlogListPage from './modules/admin/pages/BlogListPage'; // New Page 
 import BlogFormPage from './modules/admin/pages/BlogFormPage'; // New Page
 import BlogDetailPage from './modules/user/pages/BlogDetailPage'; // New Page
+import BlogsPage from './modules/user/pages/BlogsPage';
 import ContactSubmissionsPage from './modules/admin/pages/ContactSubmissionsPage';
 import ProtectedRoute from './components/ProtectedRoute'; // Auth Guard
 
@@ -127,6 +128,7 @@ function App() {
                 <Route path="privacy-policy" element={<InfoPage type="privacy-policy" />} />
                 <Route path="terms-conditions" element={<InfoPage type="terms-conditions" />} />
                 <Route path="contact-us" element={<InfoPage type="contact-us" />} />
+                <Route path="blogs" element={<BlogsPage />} />
                 <Route path="blog/:slug" element={<BlogDetailPage />} />
                 <Route path="login" element={<AuthPage />} />
                 <Route path="otp-verification" element={<OTPPage />} />
