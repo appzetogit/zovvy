@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     ArrowLeft,
-    Plus,
-    Trash2,
     Truck,
     Wallet,
     ShieldCheck,
@@ -32,14 +30,12 @@ const ICON_OPTIONS = {
     CheckCircle2
 };
 
-import { useTrustSignals, useAddTrustSignal, useUpdateTrustSignal, useDeleteTrustSignal } from '../../../hooks/useContent';
+import { useTrustSignals, useUpdateTrustSignal } from '../../../hooks/useContent';
 
 const WhyChooseUsPage = () => {
     const navigate = useNavigate();
     const { data: features = [], isLoading: loading } = useTrustSignals();
-    const addSignalMutation = useAddTrustSignal();
     const updateSignalMutation = useUpdateTrustSignal();
-    const deleteSignalMutation = useDeleteTrustSignal();
 
     const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState(null); // { id, icon, topText, bottomText }
@@ -49,22 +45,6 @@ const WhyChooseUsPage = () => {
         featureId: feature._id || feature.id || `trust-signal-${index}`
     }));
     const activeFeatures = normalizedFeatures.filter((feature) => feature.isActive !== false);
-
-    const handleAdd = () => {
-        if (activeFeatures.length >= 4) {
-            toast.error('Only 4 features can be shown. Delete one first to add another.');
-            return;
-        }
-
-        setEditForm({
-            icon: 'Star',
-            topText: '',
-            bottomText: '',
-            order: normalizedFeatures.length,
-            isActive: true
-        });
-        setIsEditing(true);
-    };
 
     const handleEdit = (feature) => {
         setEditForm({ ...feature });
@@ -90,33 +70,13 @@ const WhyChooseUsPage = () => {
                         bottomText
                     }
                 });
-            } else {
-                await addSignalMutation.mutateAsync({
-                    ...editForm,
-                    topText,
-                    bottomText
-                });
             }
             setIsEditing(false);
             setEditForm(null);
         } catch (error) { }
     };
 
-    const handleDelete = async (feature) => {
-        const id = feature._id || feature.id;
-        if (!id) return;
-
-        try {
-            await deleteSignalMutation.mutateAsync(id);
-            if (editForm && (editForm._id || editForm.id) === id) {
-                setIsEditing(false);
-                setEditForm(null);
-            }
-        } catch (error) { }
-    };
-
-    const isSaving = addSignalMutation.isPending || updateSignalMutation.isPending;
-    const isDeleting = deleteSignalMutation.isPending;
+    const isSaving = updateSignalMutation.isPending;
 
     return (
         <div className="space-y-8 font-['Inter'] pb-32">
@@ -134,13 +94,6 @@ const WhyChooseUsPage = () => {
                         <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-[0.2em]">Manage trust signals on homepage</p>
                     </div>
                 </div>
-                <button
-                    onClick={handleAdd}
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primaryDeep disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                    <Plus size={18} />
-                    Add Feature
-                </button>
             </div>
 
             {/* Live Preview Section */}
@@ -161,7 +114,7 @@ const WhyChooseUsPage = () => {
                             <div className="py-10 text-center">
                                 <p className="text-sm font-bold text-white">No trust signals added yet</p>
                                 <p className="mt-2 text-xs uppercase tracking-[0.2em] text-gray-400">
-                                    Add up to 4 features to show them here and on the homepage
+                                    Create trust signals from your backend data source to show them here and on the homepage
                                 </p>
                             </div>
                         ) : activeFeatures.slice(0, 4).map((feature) => {
@@ -196,13 +149,6 @@ const WhyChooseUsPage = () => {
                                 >
                                     <Edit2 size={16} />
                                 </button>
-                                <button
-                                    onClick={() => handleDelete(feature)}
-                                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                                    disabled={isDeleting}
-                                >
-                                    <Trash2 size={16} />
-                                </button>
                             </div>
 
                             <div className="flex flex-col items-center text-center gap-4">
@@ -223,15 +169,8 @@ const WhyChooseUsPage = () => {
                 <div className="rounded-3xl border border-dashed border-gray-200 bg-white px-6 py-12 text-center shadow-sm">
                     <h3 className="text-lg font-black text-gray-900">No features found</h3>
                     <p className="mt-2 text-sm font-medium text-gray-500">
-                        Create your first trust signal to make this section visible on the homepage.
+                        Create trust signals in the database to make this section visible on the homepage.
                     </p>
-                    <button
-                        onClick={handleAdd}
-                        className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primaryDeep"
-                    >
-                        <Plus size={18} />
-                        Add First Feature
-                    </button>
                 </div>
             )}
 
@@ -239,9 +178,7 @@ const WhyChooseUsPage = () => {
             {isEditing && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-                        <h2 className="text-lg font-black text-gray-900 uppercase tracking-tight mb-6">
-                            {editForm?._id || editForm?.id ? 'Edit Feature' : 'Add New Feature'}
-                        </h2>
+                        <h2 className="text-lg font-black text-gray-900 uppercase tracking-tight mb-6">Edit Feature</h2>
 
                         <div className="space-y-4">
                             {/* Icon Selection */}
@@ -292,16 +229,6 @@ const WhyChooseUsPage = () => {
                         </div>
 
                         <div className="flex gap-3 mt-8">
-                            {(editForm?._id || editForm?.id) && (
-                                <button
-                                    onClick={() => handleDelete(editForm)}
-                                    disabled={isDeleting}
-                                    className="py-3 px-4 rounded-xl border border-red-200 text-red-500 hover:bg-red-50 transition-all disabled:cursor-not-allowed disabled:opacity-60"
-                                    title="Delete feature"
-                                >
-                                    <Trash2 size={18} />
-                                </button>
-                            )}
                             <button
                                 onClick={() => {
                                     setIsEditing(false);
@@ -316,7 +243,7 @@ const WhyChooseUsPage = () => {
                                 disabled={isSaving}
                                 className="flex-1 py-3 rounded-xl bg-primary text-white font-bold hover:bg-primaryDeep shadow-lg shadow-primary/20 transition-all text-sm disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                {isSaving ? 'Saving...' : editForm?._id || editForm?.id ? 'Save Changes' : 'Add Feature'}
+                                {isSaving ? 'Saving...' : 'Save Changes'}
                             </button>
                         </div>
                     </div>
