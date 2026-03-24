@@ -2,7 +2,7 @@ import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useOfferBySlug } from '../../../hooks/useOffers';
 import ProductCard from '../components/ProductCard';
-import { ChevronRight, ArrowLeft, ShoppingBag, Sparkles } from 'lucide-react';
+import { ChevronRight, ArrowLeft, ShoppingBag } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const SingleOfferPage = () => {
@@ -40,7 +40,7 @@ const SingleOfferPage = () => {
     return (
         <div className="bg-white min-h-screen pb-20 font-['Inter'] text-left">
             {/* Breadcrumb */}
-            <div className="container mx-auto px-4 md:px-12 py-4 flex items-center gap-2 text-[10px] md:text-[12px] font-medium text-gray-400">
+            <div className="container mx-auto px-4 md:px-12 pt-6 pb-4 flex items-center gap-2 text-[10px] md:text-[12px] font-medium text-gray-400">
                 <Link to="/" className="hover:text-primary">Home</Link>
                 <ChevronRight size={14} />
                 <Link to="/catalog" className="hover:text-primary">Shop</Link>
@@ -49,16 +49,16 @@ const SingleOfferPage = () => {
             </div>
 
             {/* Header Section */}
-            <div className="container mx-auto px-4 md:px-12 mt-10 mb-10">
-                <div className="max-w-4xl space-y-4">
-                    <span className="bg-primary/10 text-primary px-4 py-1.5 rounded-full text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] border border-primary/20">
+            <div className="container mx-auto px-4 md:px-12 pt-4 pb-3">
+                <div className="max-w-4xl flex flex-col gap-2">
+                    <span className="inline-flex w-fit bg-primary/10 text-primary px-4 py-1.5 rounded-full text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] border border-primary/20">
                         Special Collection
                     </span>
-                    <h1 className="text-4xl md:text-7xl font-black text-footerBg uppercase tracking-tighter leading-none">
+                    <h1 className="text-2xl md:text-4xl font-black text-footerBg uppercase tracking-tighter leading-none">
                         {offer.title}
                     </h1>
                     {offer.description && (
-                        <p className="text-gray-500 text-sm md:text-xl font-medium leading-relaxed max-w-3xl">
+                        <p className="text-gray-500 text-sm md:text-lg font-medium leading-relaxed max-w-3xl">
                             {offer.description}
                         </p>
                     )}
@@ -66,17 +66,7 @@ const SingleOfferPage = () => {
             </div>
 
             {/* Products Grid */}
-            <div className="container mx-auto px-4 md:px-12">
-                <div className="flex items-center justify-between mb-8 border-b border-gray-100 pb-4">
-                    <h3 className="text-sm md:text-lg font-black text-footerBg uppercase tracking-widest flex items-center gap-3">
-                        <ShoppingBag size={20} className="text-primary" />
-                        Curated Products
-                    </h3>
-                    <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-4 py-1 rounded-full border border-gray-100 uppercase tracking-widest">
-                        {offer.products?.length || 0} Items
-                    </span>
-                </div>
-
+            <div className="container mx-auto px-4 md:px-12 pt-2">
                 {offer.products?.length > 0 ? (
                     <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-x-8 md:gap-y-12">
                         {offer.products.map((product) => (
