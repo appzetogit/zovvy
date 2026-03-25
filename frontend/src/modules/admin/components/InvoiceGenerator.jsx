@@ -7,12 +7,12 @@ import { useSetting } from "../../../hooks/useSettings";
 ============================================ */
 
 export const InvoiceDisplay = React.forwardRef(
-  ({ order, item, items, settings: apiSettings }, ref) => {
+  ({ order, item, items, settings: apiSettings, checkoutFeeConfig }, ref) => {
     if (!order) return null;
 
     // Specific seller requirements - prioritize apiSettings from DB
     const settings = {
-        sellerName: apiSettings?.sellerName || "Farmlyf",
+        sellerName: apiSettings?.sellerName || "Zovvy",
         sellerAddress: apiSettings?.sellerAddress || "123 E-com St, Digital City",
         companyOfficeAddress: apiSettings?.companyOfficeAddress || apiSettings?.sellerAddress || "123 E-com St, Digital City",
         gstNumber: apiSettings?.gstNumber || "123456789",
@@ -30,10 +30,44 @@ export const InvoiceDisplay = React.forwardRef(
       : (item ? [item] : (order?.items || []));
 
     const totalQty = list.reduce((a, b) => a + (b.qty || b.quantity || 1), 0);
-    const subtotal = list.reduce((a, b) => a + (b.price * (b.qty || b.quantity || 1)), 0);
+    const computedSubtotal = list.reduce((a, b) => a + (b.price * (b.qty || b.quantity || 1)), 0);
+    const subtotal = Number(order.subtotal ?? computedSubtotal);
+    const additionalFees = order.additionalFees || {};
+    const hasSavedFeeBreakup =
+      additionalFees.paymentHandlingFee !== undefined
+      || additionalFees.platformFee !== undefined
+      || additionalFees.handlingFee !== undefined;
+
+    let paymentHandlingFee = Number(additionalFees.paymentHandlingFee || 0);
+    let platformFee = Number(additionalFees.platformFee || 0);
+    let handlingFee = Number(additionalFees.handlingFee || 0);
     const shipping = Number(order.deliveryCharges || 0);
     const discount = Number(order.discount || 0);
-    const totalAmount = subtotal + shipping - discount;
+    const totalAmount = Number(order.amount || (subtotal + paymentHandlingFee + platformFee + handlingFee + shipping - discount));
+
+    if (!hasSavedFeeBreakup) {
+      const inferredTotalFees = Math.max(0, totalAmount - subtotal - shipping + discount);
+      const cfg = (checkoutFeeConfig && typeof checkoutFeeConfig === 'object') ? checkoutFeeConfig : {};
+      const cfgPayment = Number(cfg.paymentHandlingFee || 0);
+      const cfgPlatform = Number(cfg.platformFee || 0);
+      const cfgHandling = Number(cfg.handlingFee || 0);
+      const cfgSum = cfgPayment + cfgPlatform + cfgHandling;
+
+      if (inferredTotalFees > 0 && cfgSum > 0) {
+        if (Math.abs(cfgSum - inferredTotalFees) < 0.0001) {
+          paymentHandlingFee = cfgPayment;
+          platformFee = cfgPlatform;
+          handlingFee = cfgHandling;
+        } else {
+          const ratio = inferredTotalFees / cfgSum;
+          paymentHandlingFee = Math.round(cfgPayment * ratio);
+          platformFee = Math.round(cfgPlatform * ratio);
+          handlingFee = Math.max(0, inferredTotalFees - paymentHandlingFee - platformFee);
+        }
+      } else if (inferredTotalFees > 0) {
+        handlingFee = inferredTotalFees;
+      }
+    }
 
     return (
       <div ref={ref} className="invoice-root">
@@ -173,7 +207,7 @@ export const InvoiceDisplay = React.forwardRef(
               <tr>
                 <td colSpan="4" style={{ padding: "8px 5px" }}>
                    <div style={{ fontSize: "9px", marginBottom: "3px" }}>Ordered through</div>
-                   <div className="brand">Farmlyf <span style={{ fontSize: "14px", transform: "scaleX(-1)", display: "inline-block" }}>f</span></div>
+                   <div className="brand">Zovvy</div>
                 </td>
               </tr>
               <tr>
@@ -310,33 +344,59 @@ export const InvoiceDisplay = React.forwardRef(
                   </tr>
                 );
               })}
-              {shipping > 0 && (
-                <tr>
-                  <td colSpan="2"><b>Shipping Charges</b></td>
-                  <td className="text-center">1</td>
-                  <td className="text-right">{format(shipping)}</td>
-                  <td className="text-right">0.00</td>
-                  <td className="text-right">{format(shipping)}</td>
-                  <td className="text-right">0.00</td>
-                  <td className="text-right">0.00</td>
-                  <td className="text-right"><b>{format(shipping)}</b></td>
-                </tr>
-              )}
-              {discount > 0 && (
-                <tr style={{ color: "green" }}>
-                  <td colSpan="2"><b>Discount</b></td>
-                  <td className="text-center">1</td>
-                  <td className="text-right">-{format(discount)}</td>
-                  <td className="text-right">0.00</td>
-                  <td className="text-right">-{format(discount)}</td>
-                  <td className="text-right">0.00</td>
-                  <td className="text-right">0.00</td>
-                  <td className="text-right"><b>-{format(discount)}</b></td>
-                </tr>
-              )}
+                            <tr style={{ color: "green" }}>
+                <td colSpan="2"><b>Discount (Coupon)</b></td>
+                <td className="text-center">1</td>
+                <td className="text-right">-{format(discount)}</td>
+                <td className="text-right">0.00</td>
+                <td className="text-right">-{format(discount)}</td>
+                <td className="text-right">0.00</td>
+                <td className="text-right">0.00</td>
+                <td className="text-right"><b>-{format(discount)}</b></td>
+              </tr>
+              <tr>
+                <td colSpan="2"><b>Payment Handling Fee</b></td>
+                <td className="text-center">1</td>
+                <td className="text-right">{format(paymentHandlingFee)}</td>
+                <td className="text-right">0.00</td>
+                <td className="text-right">{format(paymentHandlingFee)}</td>
+                <td className="text-right">0.00</td>
+                <td className="text-right">0.00</td>
+                <td className="text-right"><b>{format(paymentHandlingFee)}</b></td>
+              </tr>
+              <tr>
+                <td colSpan="2"><b>Platform Fee</b></td>
+                <td className="text-center">1</td>
+                <td className="text-right">{format(platformFee)}</td>
+                <td className="text-right">0.00</td>
+                <td className="text-right">{format(platformFee)}</td>
+                <td className="text-right">0.00</td>
+                <td className="text-right">0.00</td>
+                <td className="text-right"><b>{format(platformFee)}</b></td>
+              </tr>
+              <tr>
+                <td colSpan="2"><b>Handling Fee</b></td>
+                <td className="text-center">1</td>
+                <td className="text-right">{format(handlingFee)}</td>
+                <td className="text-right">0.00</td>
+                <td className="text-right">{format(handlingFee)}</td>
+                <td className="text-right">0.00</td>
+                <td className="text-right">0.00</td>
+                <td className="text-right"><b>{format(handlingFee)}</b></td>
+              </tr>
+              <tr>
+                <td colSpan="2"><b>Shipping Charges</b></td>
+                <td className="text-center">1</td>
+                <td className="text-right">{format(shipping)}</td>
+                <td className="text-right">0.00</td>
+                <td className="text-right">{format(shipping)}</td>
+                <td className="text-right">0.00</td>
+                <td className="text-right">0.00</td>
+                <td className="text-right"><b>{format(shipping)}</b></td>
+              </tr>
               <tr style={{ background: "#f5f5f5", fontWeight: "bold" }}>
                 <td colSpan="2">TOTAL QTY: {totalQty}</td>
-                <td colSpan="6" className="text-right">TOTAL PRICE:</td>
+                <td colSpan="6" className="text-right">FINAL PAYABLE AMOUNT:</td>
                 <td className="text-right">₹{format(totalAmount)}</td>
               </tr>
             </tbody>
@@ -371,7 +431,7 @@ export const InvoiceDisplay = React.forwardRef(
           
           <div style={{ marginTop: "20px", display: "flex", justifyContent: "space-between", fontSize: "9px", fontWeight: "bold", borderTop: "1px solid #eee", paddingTop: "10px" }}>
              <span>E. & O.E.</span>
-             <span>Ordered Through Farmlyf <span style={{ border: "1px solid black", padding: "0 1px", transform: "scaleX(-1)", display: "inline-block", fontSize: "8px" }}>f</span></span>
+             <span>Ordered Through Zovvy</span>
           </div>
         </div>
       </div>
@@ -386,6 +446,7 @@ export const InvoiceDisplay = React.forwardRef(
 const InvoiceGenerator = ({ order, item, items, settings, customTrigger }) => {
   const componentRef = useRef(null);
   const { data: invoiceSettings } = useSetting('invoice_settings');
+  const { data: checkoutFeeConfigSetting } = useSetting('checkout_fee_config');
 
   const handlePrint = useReactToPrint({
     contentRef: componentRef,
@@ -418,6 +479,7 @@ const InvoiceGenerator = ({ order, item, items, settings, customTrigger }) => {
           item={item}
           items={items}
           settings={settings || invoiceSettings?.value}
+          checkoutFeeConfig={checkoutFeeConfigSetting?.value}
         />
       </div>
       {trigger}
@@ -432,6 +494,7 @@ const InvoiceGenerator = ({ order, item, items, settings, customTrigger }) => {
 export const BulkInvoiceGenerator = ({ orders, settings, customTrigger }) => {
   const componentRef = useRef(null);
   const { data: invoiceSettings } = useSetting('invoice_settings');
+  const { data: checkoutFeeConfigSetting } = useSetting('checkout_fee_config');
 
   const handlePrint = useReactToPrint({
     contentRef: componentRef,
@@ -465,6 +528,7 @@ export const BulkInvoiceGenerator = ({ orders, settings, customTrigger }) => {
                 order={order}
                 items={order.items || order.orderItems}
                 settings={settings || invoiceSettings?.value}
+                checkoutFeeConfig={checkoutFeeConfigSetting?.value}
               />
             </div>
           ))}
@@ -476,3 +540,4 @@ export const BulkInvoiceGenerator = ({ orders, settings, customTrigger }) => {
 };
 
 export default InvoiceGenerator;
+

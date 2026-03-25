@@ -13,6 +13,8 @@ const getDefaultAdminName = () => process.env.ADMIN_NAME || 'Super Admin';
 const getDefaultAdminPassword = () => process.env.ADMIN_PASSWORD || 'admin';
 
 const escapeRegExp = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const fullNameRegex = /^[A-Za-z ]+$/;
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const findUserByPhoneFlexible = async (normalizedPhone) => {
   if (!normalizedPhone) return null;
@@ -214,6 +216,9 @@ export const getUserProfile = asyncHandler(async (req, res) => {
 // @route   PUT /api/users/profile
 // @access  Private
 export const updateUserProfile = asyncHandler(async (req, res) => {
+    const fullNameRegex = /^[A-Za-z]+(?:\s+[A-Za-z]+)*$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^[6-9]\d{9}$/;
     let user;
     let isAdmin = req.user.role === 'admin';
 
@@ -228,9 +233,27 @@ export const updateUserProfile = asyncHandler(async (req, res) => {
     }
 
     if (user) {
-        if (req.body.name !== undefined) user.name = req.body.name;
-        if (req.body.email !== undefined) user.email = req.body.email;
-        if (req.body.phone !== undefined) user.phone = req.body.phone;
+        if (req.body.name !== undefined) {
+            const normalizedName = String(req.body.name).trim().replace(/\s+/g, ' ');
+            if (!normalizedName || !fullNameRegex.test(normalizedName)) {
+                return res.status(400).json({ message: 'Full name should contain letters and spaces only' });
+            }
+            user.name = normalizedName;
+        }
+        if (req.body.email !== undefined) {
+            const normalizedEmail = String(req.body.email).trim().toLowerCase();
+            if (!normalizedEmail || !emailRegex.test(normalizedEmail)) {
+                return res.status(400).json({ message: 'Please provide a valid email address' });
+            }
+            user.email = normalizedEmail;
+        }
+        if (req.body.phone !== undefined) {
+            const normalizedPhone = String(req.body.phone).replace(/\D/g, '');
+            if (!phoneRegex.test(normalizedPhone)) {
+                return res.status(400).json({ message: 'Phone number must be a valid 10-digit mobile number' });
+            }
+            user.phone = normalizedPhone;
+        }
         if (req.body.gender !== undefined) user.gender = req.body.gender;
         if (req.body.birthDate !== undefined) user.birthDate = req.body.birthDate;
         if (req.body.accountType !== undefined) user.accountType = req.body.accountType;
@@ -376,6 +399,24 @@ export const getUsers = async (req, res) => {
   }
 };
 
+// @desc    Delete user
+// @route   DELETE /api/users/:id
+// @access  Private/Admin
+export const deleteUser = async (req, res) => {
+    try {
+        const user = await User.findOne({ id: req.params.id });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        await User.deleteOne({ id: req.params.id });
+        return res.json({ message: 'User deleted successfully' });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
 // @desc    Ban/Unban user
 // @route   PUT /api/users/:id/ban
 // @access  Private/Admin
@@ -490,8 +531,21 @@ export const verifyOtpForLogin = asyncHandler(async (req, res) => {
             return res.json({ isNewUser: true, phone: normalizedPhone });
         }
 
+        const normalizedName = String(name).trim().replace(/\s+/g, ' ');
+        const normalizedEmail = String(email).trim().toLowerCase();
+
+        if (!fullNameRegex.test(normalizedName)) {
+            res.status(400);
+            throw new Error('Full name should contain letters and spaces only');
+        }
+
+        if (!emailRegex.test(normalizedEmail)) {
+            res.status(400);
+            throw new Error('Please enter a valid email address');
+        }
+
         // Check if email is already taken by another account (without this phone)
-        const emailExists = await User.findOne({ email });
+        const emailExists = await User.findOne({ email: normalizedEmail });
         if (emailExists) {
             res.status(400);
             throw new Error('Email is already registered with another account');
@@ -500,8 +554,8 @@ export const verifyOtpForLogin = asyncHandler(async (req, res) => {
         // Create new user
         user = await User.create({
             id: 'user_' + Date.now(),
-            name,
-            email,
+            name: normalizedName,
+            email: normalizedEmail,
             phone: normalizedPhone,
             accountType: accountType || 'Individual',
             gstNumber: gstNumber || undefined,
@@ -532,7 +586,7 @@ export const verifyOtpForLogin = asyncHandler(async (req, res) => {
         email: user.email,
         phone: user.phone,
         accountType: user.accountType,
-        role: user.email === DEFAULT_ADMIN_EMAIL ? 'admin' : 'user',
+        role: user.email === getDefaultAdminEmail().trim().toLowerCase() ? 'admin' : 'user',
         token
     });
 });

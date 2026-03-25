@@ -740,7 +740,7 @@ const ProfilePage = () => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 gap-4">
                                 <div className="space-y-2 text-left">
                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Gender</label>
                                     <div className="flex bg-gray-50 rounded-none p-1 border border-gray-100">
@@ -969,7 +969,7 @@ const ProfilePage = () => {
                                             </div>
                                         )}
                                     </div>
-                                    <div className="grid grid-cols-2 gap-3 md:gap-4">
+                                    <div className="grid grid-cols-1 gap-3 md:gap-4">
                                         <div className="space-y-1.5 text-left">
                                             <label className="text-[9px] font-bold text-white/50 uppercase tracking-widest ml-1">Gender</label>
                                             {isEditing ? (

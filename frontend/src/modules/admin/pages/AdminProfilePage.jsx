@@ -15,6 +15,10 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../../../context/AuthContext';
 import { API_BASE_URL } from '@/lib/apiUrl';
 
+const FULL_NAME_REGEX = /^[A-Za-z]+(?:\s+[A-Za-z]+)*$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_REGEX = /^[6-9]\d{9}$/;
+
 const AdminProfilePage = () => {
     const { user, getAuthHeaders } = useAuth();
     const API_URL = API_BASE_URL;
@@ -47,7 +51,17 @@ const AdminProfilePage = () => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        let nextValue = value;
+
+        if (name === 'name') {
+            nextValue = value.replace(/[^A-Za-z\s]/g, '').replace(/\s{2,}/g, ' ');
+        } else if (name === 'phone') {
+            nextValue = value.replace(/\D/g, '').slice(0, 10);
+        } else if (name === 'email') {
+            nextValue = value.trim().toLowerCase();
+        }
+
+        setFormData(prev => ({ ...prev, [name]: nextValue }));
     };
 
     const handlePasswordChange = (e) => {
@@ -56,12 +70,33 @@ const AdminProfilePage = () => {
     };
 
     const handleSave = async () => {
+        const trimmedName = formData.name.trim().replace(/\s+/g, ' ');
+        const trimmedEmail = formData.email.trim().toLowerCase();
+        const trimmedPhone = formData.phone.trim();
+
+        if (!trimmedName || !FULL_NAME_REGEX.test(trimmedName)) {
+            return toast.error('Full name should contain letters and spaces only');
+        }
+
+        if (!trimmedEmail || !EMAIL_REGEX.test(trimmedEmail)) {
+            return toast.error('Please enter a valid email address');
+        }
+
+        if (!PHONE_REGEX.test(trimmedPhone)) {
+            return toast.error('Phone number must be a valid 10-digit mobile number');
+        }
+
         setIsSaving(true);
         try {
             const response = await fetch(`${API_URL}/users/profile`, {
                 method: 'PUT',
                 headers: getAuthHeaders(),
-                body: JSON.stringify(formData),
+                body: JSON.stringify({
+                    ...formData,
+                    name: trimmedName,
+                    email: trimmedEmail,
+                    phone: trimmedPhone
+                }),
                 credentials: 'include'
             });
 

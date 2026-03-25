@@ -13,7 +13,8 @@ import {
     Users as UsersIcon,
     CheckCircle2,
     AlertCircle,
-    Coins
+    Coins,
+    Trash2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
@@ -104,6 +105,29 @@ const UsersPage = () => {
             } else {
                 const data = await response.json();
                 toast.error(data.message || 'Action failed');
+            }
+        } catch (error) {
+            toast.error('Network error');
+        }
+    };
+
+    const handleDeleteUser = async (userId, userName) => {
+        const confirmDelete = window.confirm(`Delete user "${userName || 'this user'}"? This action cannot be undone.`);
+        if (!confirmDelete) return;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders()
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                toast.success(data.message || 'User deleted successfully');
+                fetchUsers();
+            } else {
+                const data = await response.json();
+                toast.error(data.message || 'Failed to delete user');
             }
         } catch (error) {
             toast.error('Network error');
@@ -280,6 +304,13 @@ const UsersPage = () => {
                                                 title={user.isBlocked ? 'Unblock user' : 'Block user'}
                                             >
                                                 {user.isBlocked ? <ShieldCheck size={16} /> : <ShieldOff size={16} />}
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteUser(user.id, user.name)}
+                                                className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                                title="Delete user"
+                                            >
+                                                <Trash2 size={16} />
                                             </button>
                                         </div>
                                     </AdminTableCell>

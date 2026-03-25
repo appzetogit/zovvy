@@ -122,13 +122,21 @@ const CartPage = () => {
     const handleAddToCart = (e, item) => {
         e.stopPropagation();
         e.preventDefault();
-        addToCart(user?.id, item.id);
+        if (!user) {
+            navigate('/login');
+            return;
+        }
+        addToCart(user.id, item.id);
     };
 
     const handleBuyNow = (e, item) => {
         e.stopPropagation();
         e.preventDefault();
-        addToCart(user?.id, item.id);
+        if (!user) {
+            navigate('/login');
+            return;
+        }
+        addToCart(user.id, item.id);
         navigate('/checkout');
     };
 
@@ -277,7 +285,7 @@ const CartPage = () => {
                                             </div>
                                         )}
                                         <div className="text-right">
-                                            <div className="text-gray-400 text-[9px] md:text-sm line-through">₹{Math.round(item.price * 1.5) * item.qty}</div>
+                                            <div className="text-gray-400 text-[9px] md:text-sm line-through">₹{((item.mrp || item.price) * item.qty)}</div>
                                             <div className="text-sm md:text-xl font-black text-footerBg">₹{item.price * item.qty}</div>
                                         </div>
                                     </div>
@@ -411,3 +419,4 @@ const CartPage = () => {
 };
 
 export default CartPage;
+

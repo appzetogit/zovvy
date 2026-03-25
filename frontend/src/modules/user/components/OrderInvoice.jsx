@@ -3,24 +3,71 @@ import { useReactToPrint } from 'react-to-print';
 import { Printer, Download, X, FileText, Hash } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSetting } from '../../../hooks/useSettings';
+import toast from 'react-hot-toast';
 import logo from '../../../assets/zovvy-logo.png';
 
 const OrderInvoice = ({ order, isOpen, onClose }) => {
     const componentRef = useRef(null);
-    const handlePrint = useReactToPrint({
+    const printInvoice = useReactToPrint({
         contentRef: componentRef,
-        documentTitle: `Invoice_${order?.id}`,
+        documentTitle: `Invoice_${order?.id || 'order'}`,
+        removeAfterPrint: true,
+        onPrintError: () => toast.error('Unable to print invoice. Please try again.')
     });
+    const handlePrint = () => {
+        if (!componentRef.current) {
+            toast.error('Invoice is not ready to print yet. Please try again.');
+            return;
+        }
+        printInvoice();
+    };
 
     const { data: invoiceSettingsSetting } = useSetting('invoice_settings');
     const invoiceSettings = invoiceSettingsSetting?.value || {};
+    const { data: checkoutFeeConfigSetting } = useSetting('checkout_fee_config');
 
     if (!order) return null;
 
-    const subtotal = order.items.reduce((acc, item) => acc + (item.price * item.qty), 0);
-    const discount = order.discount || 0;
-    const shipping = order.deliveryCharges || 0;
-    const total = order.amount;
+    const computedSubtotal = order.items.reduce((acc, item) => acc + (item.price * item.qty), 0);
+    const subtotal = Number(order.subtotal ?? computedSubtotal);
+    const discount = Number(order.discount || 0);
+    const additionalFees = order.additionalFees || {};
+    const hasSavedFeeBreakup =
+        additionalFees.paymentHandlingFee !== undefined
+        || additionalFees.platformFee !== undefined
+        || additionalFees.handlingFee !== undefined;
+
+    let paymentHandlingFee = Number(additionalFees.paymentHandlingFee || 0);
+    let platformFee = Number(additionalFees.platformFee || 0);
+    let handlingFee = Number(additionalFees.handlingFee || 0);
+    const shipping = Number(order.deliveryCharges || 0);
+    const total = Number(order.amount || (subtotal + paymentHandlingFee + platformFee + handlingFee + shipping - discount));
+
+    if (!hasSavedFeeBreakup) {
+        const inferredTotalFees = Math.max(0, total - subtotal - shipping + discount);
+        const cfg = (checkoutFeeConfigSetting?.value && typeof checkoutFeeConfigSetting.value === 'object')
+            ? checkoutFeeConfigSetting.value
+            : {};
+        const cfgPayment = Number(cfg.paymentHandlingFee || 0);
+        const cfgPlatform = Number(cfg.platformFee || 0);
+        const cfgHandling = Number(cfg.handlingFee || 0);
+        const cfgSum = cfgPayment + cfgPlatform + cfgHandling;
+
+        if (inferredTotalFees > 0 && cfgSum > 0) {
+            if (Math.abs(cfgSum - inferredTotalFees) < 0.0001) {
+                paymentHandlingFee = cfgPayment;
+                platformFee = cfgPlatform;
+                handlingFee = cfgHandling;
+            } else {
+                const ratio = inferredTotalFees / cfgSum;
+                paymentHandlingFee = Math.round(cfgPayment * ratio);
+                platformFee = Math.round(cfgPlatform * ratio);
+                handlingFee = Math.max(0, inferredTotalFees - paymentHandlingFee - platformFee);
+            }
+        } else if (inferredTotalFees > 0) {
+            handlingFee = inferredTotalFees;
+        }
+    }
 
     return (
         <AnimatePresence>
@@ -48,6 +95,7 @@ const OrderInvoice = ({ order, isOpen, onClose }) => {
                             </div>
                             <div className="flex items-center gap-3">
                                 <button
+                                    type="button"
                                     onClick={handlePrint}
                                     className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs font-black uppercase tracking-widest text-slate-600 hover:bg-gray-50 transition-colors shadow-sm"
                                 >
@@ -69,9 +117,9 @@ const OrderInvoice = ({ order, isOpen, onClose }) => {
                                 {/* Branding & Official Header */}
                                 <div className="flex justify-between items-start mb-12">
                                     <div className="space-y-4">
-                                        <img src={logo} alt="Farmlyf" className="h-12 w-auto object-contain" />
+                                        <img src={logo} alt="Zovvy" className="h-12 w-auto object-contain" />
                                         <div className="space-y-1">
-                                            <h1 className="text-2xl font-black text-footerBg uppercase tracking-tighter">{invoiceSettings.sellerName || "Farmlyf"}</h1>
+                                            <h1 className="text-2xl font-black text-footerBg uppercase tracking-tighter">{invoiceSettings.sellerName || "Zovvy"}</h1>
                                             <p className="text-[11px] text-slate-500 max-w-[240px] leading-relaxed">
                                                 {invoiceSettings.companyOfficeAddress || "Premium Quality Farm Fresh Products"}
                                             </p>
@@ -149,25 +197,35 @@ const OrderInvoice = ({ order, isOpen, onClose }) => {
                                     </table>
                                 </div>
 
-                                {/* Totals Summary */}
+                                                                {/* Totals Summary */}
                                 <div className="flex justify-end pt-8 border-t border-gray-100">
-                                    <div className="w-full max-w-[240px] space-y-3">
+                                    <div className="w-full max-w-[320px] space-y-3">
                                         <div className="flex justify-between items-center text-xs">
                                             <span className="font-bold text-slate-400 uppercase tracking-widest">Subtotal</span>
                                             <span className="font-bold text-footerBg">₹{subtotal}</span>
                                         </div>
-                                        {discount > 0 && (
-                                            <div className="flex justify-between items-center text-xs">
-                                                <span className="font-bold text-green-500 uppercase tracking-widest">Discount</span>
-                                                <span className="font-bold text-green-500 text-xs">-₹{discount}</span>
-                                            </div>
-                                        )}
                                         <div className="flex justify-between items-center text-xs">
-                                            <span className="font-bold text-slate-400 uppercase tracking-widest">Shipping</span>
-                                            <span className="font-bold text-footerBg">₹{shipping || '0.00'}</span>
+                                            <span className="font-bold text-green-500 uppercase tracking-widest">Discount (Coupon)</span>
+                                            <span className="font-bold text-green-500 text-xs">-₹{discount}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-xs">
+                                            <span className="font-bold text-slate-400 uppercase tracking-widest">Payment Handling Fee</span>
+                                            <span className="font-bold text-footerBg">₹{paymentHandlingFee}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-xs">
+                                            <span className="font-bold text-slate-400 uppercase tracking-widest">Platform Fee</span>
+                                            <span className="font-bold text-footerBg">₹{platformFee}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-xs">
+                                            <span className="font-bold text-slate-400 uppercase tracking-widest">Handling Fee</span>
+                                            <span className="font-bold text-footerBg">₹{handlingFee}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-xs">
+                                            <span className="font-bold text-slate-400 uppercase tracking-widest">Shipping Charges</span>
+                                            <span className="font-bold text-footerBg">₹{shipping}</span>
                                         </div>
                                         <div className="flex justify-between items-center pt-3 border-t-2 border-slate-900">
-                                            <span className="text-sm font-black text-footerBg uppercase tracking-widest">Total</span>
+                                            <span className="text-sm font-black text-footerBg uppercase tracking-widest">Final Payable Amount</span>
                                             <span className="text-xl font-black text-footerBg">₹{total}</span>
                                         </div>
                                     </div>
@@ -175,9 +233,9 @@ const OrderInvoice = ({ order, isOpen, onClose }) => {
 
                                 {/* Footer Note */}
                                 <div className="mt-20 pt-8 border-t border-gray-100 text-center">
-                                    <p className="text-xs font-bold text-footerBg uppercase tracking-widest mb-1 italic">Thank you for shopping with Farmlyf!</p>
+                                    <p className="text-xs font-bold text-footerBg uppercase tracking-widest mb-1 italic">Thank you for shopping with Zovvy!</p>
                                     <p className="text-[10px] text-slate-400 leading-relaxed max-w-lg mx-auto">
-                                        This is a computer-generated document. No signature is required. For any queries regarding this invoice, please contact support@farmlyf.com
+                                        This is a computer-generated document. No signature is required. For any queries regarding this invoice, please contact support@zovvy.com
                                     </p>
                                 </div>
                             </div>
@@ -190,3 +248,4 @@ const OrderInvoice = ({ order, isOpen, onClose }) => {
 };
 
 export default OrderInvoice;
+

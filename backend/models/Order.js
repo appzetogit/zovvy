@@ -30,6 +30,11 @@ const orderSchema = new mongoose.Schema({
   amount: Number,
   subtotal: Number,
   deliveryCharges: { type: Number, default: 0 },
+  additionalFees: {
+    paymentHandlingFee: { type: Number, default: 0 },
+    platformFee: { type: Number, default: 0 },
+    handlingFee: { type: Number, default: 0 }
+  },
   paymentMethod: String,
   courierPartner: String,
   trackingId: String,

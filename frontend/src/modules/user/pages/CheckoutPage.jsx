@@ -18,6 +18,11 @@ import { useValidateReferral } from '../../../hooks/useReferrals';
 import { useSetting } from '../../../hooks/useSettings';
 import { API_BASE_URL } from '@/lib/apiUrl';
 
+const FULL_NAME_REGEX = /^[A-Za-z][A-Za-z\s.'-]{1,119}$/;
+const CITY_STATE_REGEX = /^[A-Za-z][A-Za-z\s.'-]{1,79}$/;
+const PHONE_REGEX = /^\d{10}$/;
+const PINCODE_REGEX = /^\d{6}$/;
+
 const CheckoutPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -208,7 +213,6 @@ const CheckoutPage = () => {
 
     const [paymentMethod, setPaymentMethod] = useState('cod');
     const [loading, setLoading] = useState(false);
-    const [detectingLocation, setDetectingLocation] = useState(false);
     const [shippingQuote, setShippingQuote] = useState({
         loading: false,
         shippingCharge: 0,
@@ -219,64 +223,6 @@ const CheckoutPage = () => {
         weight: null,
         error: ''
     });
-
-    const handleDetectLocation = () => {
-        if (!navigator.geolocation) {
-            toast.error('Geolocation is not supported by your browser');
-            return;
-        }
-
-        const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-        if (!API_KEY) {
-            toast.error('Google Maps API Key missing. Please add it to your environment.');
-            return;
-        }
-
-        setDetectingLocation(true);
-        navigator.geolocation.getCurrentPosition(
-            async (position) => {
-                const { latitude, longitude } = position.coords;
-                try {
-                    const response = await fetch(
-                        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${API_KEY}`
-                    );
-                    const data = await response.json();
-
-                    if (data.status === 'OK') {
-                        const result = data.results[0];
-                        const components = result.address_components;
-
-                        const getComponent = (type) =>
-                            components.find((c) => c.types.includes(type))?.long_name || '';
-
-                        const city = getComponent('locality') || getComponent('administrative_area_level_2');
-                        const state = getComponent('administrative_area_level_1');
-                        const pincode = getComponent('postal_code');
-                        const address = result.formatted_address;
-
-                        setFormData((prev) => ({
-                            ...prev,
-                            address: address || prev.address,
-                            city: city || prev.city,
-                            state: state || prev.state,
-                            pincode: pincode || prev.pincode,
-                        }));
-                        toast.success('Location detected and address filled!');
-                    } else {
-                        toast.error('Failed to get address details');
-                    }
-                } catch (error) {
-                    toast.error('Error fetching location details');
-                } finally {
-                    setDetectingLocation(false);
-                }
-            },
-            () => {
-                toast.error('Location permission denied');
-                setDetectingLocation(false);
-            }
-        );
-    };
 
     // Coupon management state
     // Coupon management state
@@ -437,6 +383,25 @@ const CheckoutPage = () => {
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setSelectedAddressId('manual');
+
+        if (name === 'phone') {
+            const digitsOnly = value.replace(/\D/g, '').slice(0, 10);
+            setFormData(prev => ({ ...prev, [name]: digitsOnly }));
+            return;
+        }
+
+        if (name === 'pincode') {
+            const digitsOnly = value.replace(/\D/g, '').slice(0, 6);
+            setFormData(prev => ({ ...prev, [name]: digitsOnly }));
+            return;
+        }
+
+        if (name === 'fullName' || name === 'city' || name === 'state') {
+            const sanitizedText = value.replace(/[^A-Za-z\s.'-]/g, '');
+            setFormData(prev => ({ ...prev, [name]: sanitizedText }));
+            return;
+        }
+
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
@@ -498,6 +463,41 @@ const CheckoutPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        const normalizedFormData = {
+            ...formData,
+            fullName: String(formData.fullName || '').trim().replace(/\s+/g, ' '),
+            phone: String(formData.phone || '').replace(/\D/g, ''),
+            address: String(formData.address || '').trim(),
+            city: String(formData.city || '').trim().replace(/\s+/g, ' '),
+            state: String(formData.state || '').trim().replace(/\s+/g, ' '),
+            pincode: String(formData.pincode || '').replace(/\D/g, '')
+        };
+
+        if (!FULL_NAME_REGEX.test(normalizedFormData.fullName)) {
+            toast.error('Please enter a valid full name');
+            return;
+        }
+        if (!PHONE_REGEX.test(normalizedFormData.phone)) {
+            toast.error('Please enter a valid 10-digit phone number');
+            return;
+        }
+        if (!normalizedFormData.address) {
+            toast.error('Please enter a detailed address');
+            return;
+        }
+        if (!CITY_STATE_REGEX.test(normalizedFormData.city)) {
+            toast.error('Please enter a valid city name');
+            return;
+        }
+        if (!CITY_STATE_REGEX.test(normalizedFormData.state)) {
+            toast.error('Please enter a valid state name');
+            return;
+        }
+        if (!PINCODE_REGEX.test(normalizedFormData.pincode)) {
+            toast.error('Please enter a valid 6-digit pincode');
+            return;
+        }
+
         const insufficientItem = enrichedCart.find(item => (Number(item.qty) || 0) > (Number(item.stock) || 0));
         if (insufficientItem) {
             toast.error(`Insufficient stock for ${insufficientItem.name}. Available: ${insufficientItem.stock || 0}`);
@@ -508,9 +508,9 @@ const CheckoutPage = () => {
 
         const orderData = {
             userId: user?.id,
-            userName: formData.fullName,
+            userName: normalizedFormData.fullName,
             items: enrichedCart,
-            shippingAddress: formData,
+            shippingAddress: normalizedFormData,
             paymentMethod: paymentMethod,
             subtotal,
             deliveryCharges: shippingCharge,
@@ -580,8 +580,8 @@ const CheckoutPage = () => {
                         }
                     },
                     prefill: {
-                        name: formData.fullName,
-                        contact: formData.phone,
+                        name: normalizedFormData.fullName,
+                        contact: normalizedFormData.phone,
                     },
                     theme: {
                         color: '#4ADE80', // Match FarmLyf primary
@@ -656,21 +656,11 @@ const CheckoutPage = () => {
                     <div className="space-y-8">
                         {/* Shipping Address */}
                         <div className="bg-white p-4 md:p-6 rounded-xl md:rounded-2xl border border-gray-100 shadow-sm">
-                            <div className="flex items-center justify-between mb-4 md:mb-6">
+                            <div className="flex items-center mb-4 md:mb-6">
                                 <h3 className="text-lg md:text-xl font-bold text-footerBg flex items-center gap-2">
                                     <Truck size={18} className="text-primary" />
                                     Delivery Details
                                 </h3>
-                                {selectedAddressId === 'manual' && (
-                                    <button
-                                        type="button"
-                                        onClick={handleDetectLocation}
-                                        disabled={detectingLocation}
-                                        className="px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-[10px] md:text-xs font-black uppercase tracking-wider hover:bg-primary/20 transition-all flex items-center gap-2 disabled:opacity-50"
-                                    >
-                                        {detectingLocation ? 'Detecting...' : 'Detect Location'}
-                                    </button>
-                                )}
                             </div>
                             <form id="checkout-form" onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
                                 {userAddresses.length > 0 && (
@@ -737,6 +727,8 @@ const CheckoutPage = () => {
                                                     name="fullName"
                                                     value={formData.fullName}
                                                     onChange={handleInputChange}
+                                                    maxLength={120}
+                                                    autoComplete="name"
                                                     className="w-full bg-gray-50/50 border border-gray-100 rounded-lg px-3 md:px-4 py-2 md:py-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                                                     placeholder="Ex: John Doe"
                                                 />
@@ -748,6 +740,9 @@ const CheckoutPage = () => {
                                                     name="phone"
                                                     value={formData.phone}
                                                     onChange={handleInputChange}
+                                                    maxLength={10}
+                                                    autoComplete="tel"
+                                                    inputMode="numeric"
                                                     className="w-full bg-gray-50/50 border border-gray-100 rounded-lg px-3 md:px-4 py-2 md:py-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                                                     placeholder="+91"
                                                 />
@@ -773,6 +768,8 @@ const CheckoutPage = () => {
                                                     name="city"
                                                     value={formData.city}
                                                     onChange={handleInputChange}
+                                                    maxLength={80}
+                                                    autoComplete="address-level2"
                                                     className="w-full bg-gray-50/50 border border-gray-100 rounded-lg px-3 md:px-4 py-2 md:py-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                                                 />
                                             </div>
@@ -783,6 +780,9 @@ const CheckoutPage = () => {
                                                     name="pincode"
                                                     value={formData.pincode}
                                                     onChange={handleInputChange}
+                                                    maxLength={6}
+                                                    autoComplete="postal-code"
+                                                    inputMode="numeric"
                                                     className="w-full bg-gray-50/50 border border-gray-100 rounded-lg px-3 md:px-4 py-2 md:py-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                                                 />
                                             </div>
@@ -793,6 +793,8 @@ const CheckoutPage = () => {
                                                     name="state"
                                                     value={formData.state}
                                                     onChange={handleInputChange}
+                                                    maxLength={80}
+                                                    autoComplete="address-level1"
                                                     className="w-full bg-gray-50/50 border border-gray-100 rounded-lg px-3 md:px-4 py-2 md:py-3 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                                                 />
                                             </div>

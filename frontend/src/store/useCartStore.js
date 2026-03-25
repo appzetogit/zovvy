@@ -12,7 +12,12 @@ const useCartStore = create(
             getCart: (userId) => get().cartItems[userId || 'guest'] || [],
 
             addToCart: (userId, packId, qty = 1) => {
-                const effectiveId = userId || 'guest';
+                if (!userId) {
+                    toast.error("Please login to add items to cart");
+                    return false;
+                }
+
+                const effectiveId = userId;
                 const cart = get().cartItems;
                 const userCart = cart[effectiveId] || [];
 

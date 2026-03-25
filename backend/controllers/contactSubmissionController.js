@@ -1,14 +1,30 @@
 import ContactSubmission from '../models/ContactSubmission.js';
 
+const CONTACT_NAME_REGEX = /^[A-Za-z][A-Za-z\s.'-]{1,119}$/;
+const CONTACT_PHONE_REGEX = /^\d{10}$/;
+const CONTACT_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export const createContactSubmission = async (req, res) => {
   try {
     const name = String(req.body?.name || '').trim();
-    const phone = String(req.body?.phone || '').trim();
+    const phone = String(req.body?.phone || '').replace(/\D/g, '').trim();
     const email = String(req.body?.email || '').trim().toLowerCase();
     const message = String(req.body?.message || '').trim();
 
     if (!name || !phone || !email || !message) {
       return res.status(400).json({ message: 'Name, phone, email, and message are required.' });
+    }
+
+    if (!CONTACT_NAME_REGEX.test(name)) {
+      return res.status(400).json({ message: 'Please enter a valid name.' });
+    }
+
+    if (!CONTACT_PHONE_REGEX.test(phone)) {
+      return res.status(400).json({ message: 'Please enter a valid 10-digit phone number.' });
+    }
+
+    if (!CONTACT_EMAIL_REGEX.test(email)) {
+      return res.status(400).json({ message: 'Please enter a valid email address.' });
     }
 
     const submission = await ContactSubmission.create({

@@ -87,8 +87,6 @@ const CatalogPage = () => {
     }, []);
 
     const sortOptions = [
-        { value: 'featured', label: 'Featured' },
-        { value: 'best-selling', label: 'Best Selling' },
         { value: 'alphabetical-az', label: 'Alphabetically: A-Z' },
         { value: 'alphabetical-za', label: 'Alphabetically: Z-A' },
         { value: 'price-low', label: 'Price: Low to High' },

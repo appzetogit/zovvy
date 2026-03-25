@@ -5,6 +5,9 @@ import { ArrowLeft, ShieldCheck, RefreshCw, User, Mail, Briefcase } from 'lucide
 import toast from 'react-hot-toast';
 import { useAuth } from '../../../context/AuthContext';
 
+const FULL_NAME_REGEX = /^[A-Za-z ]+$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const OTPPage = () => {
     const { verifyOtp, sendOtp } = useAuth();
     const navigate = useNavigate();
@@ -84,12 +87,28 @@ const OTPPage = () => {
         const redirectPath = location.state?.redirect || '/';
 
         if (isNewUser) {
-            if (!name || !email || !accountType) {
+            const trimmedName = name.trim().replace(/\s+/g, ' ');
+            const trimmedEmail = email.trim().toLowerCase();
+
+            if (!trimmedName || !trimmedEmail || !accountType) {
                 toast.error('Please fill in all fields');
                 setIsLoading(false);
                 return;
             }
-            const result = await verifyOtp(phone, fullOtp, name, email, accountType, gstNumber);
+
+            if (!FULL_NAME_REGEX.test(trimmedName)) {
+                toast.error('Full name should contain letters and spaces only');
+                setIsLoading(false);
+                return;
+            }
+
+            if (!EMAIL_REGEX.test(trimmedEmail)) {
+                toast.error('Please enter a valid email address');
+                setIsLoading(false);
+                return;
+            }
+
+            const result = await verifyOtp(phone, fullOtp, trimmedName, trimmedEmail, accountType, gstNumber);
             setIsLoading(false);
             if (result.success) {
                 navigate(redirectPath);
@@ -201,9 +220,13 @@ const OTPPage = () => {
                                         type="text"
                                         required
                                         value={name}
-                                        onChange={(e) => setName(e.target.value)}
+                                        onChange={(e) => {
+                                            const sanitizedName = e.target.value.replace(/[^A-Za-z ]/g, '');
+                                            setName(sanitizedName);
+                                        }}
                                         className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2 pl-9 pr-3 text-xs font-medium text-gray-900 outline-none focus:border-primary transition-all"
                                         placeholder="John Doe"
+                                        autoComplete="name"
                                     />
                                 </div>
                             </div>
@@ -218,6 +241,7 @@ const OTPPage = () => {
                                         onChange={(e) => setEmail(e.target.value)}
                                         className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2 pl-9 pr-3 text-xs font-medium text-gray-900 outline-none focus:border-primary transition-all"
                                         placeholder="john@example.com"
+                                        autoComplete="email"
                                     />
                                 </div>
                             </div>

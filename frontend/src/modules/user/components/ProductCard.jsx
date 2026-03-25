@@ -178,7 +178,12 @@ const ProductCard = ({ product, showVault = true }) => {
                                     return;
                                 }
 
-                                addToCart(user?.id, itemId, 1);
+                                if (!user) {
+                                    navigate('/login');
+                                    return;
+                                }
+
+                                addToCart(user.id, itemId, 1);
                             }}
                             disabled={(hasVariants ? (product.variants[0].stock || 0) : (product.stock?.quantity || 0)) <= 0}
                             className={`w-full py-2 md:py-2.5 rounded-md md:rounded-lg text-[8px] md:text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center shadow-md
@@ -202,4 +207,5 @@ const ProductCard = ({ product, showVault = true }) => {
 };
 
 export default ProductCard;
+
 

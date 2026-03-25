@@ -6,6 +6,10 @@ import { useParams } from 'react-router-dom';
 import { useWebsiteContent } from '../../../hooks/useContent';
 import { useCreateContactSubmission } from '../../../hooks/useContactSubmissions';
 
+const CONTACT_NAME_REGEX = /^[A-Za-z][A-Za-z\s.'-]{1,119}$/;
+const CONTACT_PHONE_REGEX = /^\d{10}$/;
+const CONTACT_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const InfoPage = ({ type: propType }) => {
     const { type: paramType } = useParams();
     const type = propType || paramType;
@@ -124,9 +128,21 @@ const InfoPage = ({ type: propType }) => {
     const handleContactFieldChange = (field) => (event) => {
         const rawValue = event.target.value;
 
+        if (field === 'name') {
+            const normalizedName = rawValue.replace(/[^A-Za-z\s.'-]/g, '');
+            setContactForm((prev) => ({ ...prev, [field]: normalizedName }));
+            return;
+        }
+
         if (field === 'phone') {
             const digitsOnly = rawValue.replace(/\D/g, '').slice(0, 10);
             setContactForm((prev) => ({ ...prev, [field]: digitsOnly }));
+            return;
+        }
+
+        if (field === 'email') {
+            const normalizedEmail = rawValue.replace(/\s/g, '').toLowerCase();
+            setContactForm((prev) => ({ ...prev, [field]: normalizedEmail }));
             return;
         }
 
@@ -146,17 +162,17 @@ const InfoPage = ({ type: propType }) => {
             return;
         }
 
-        if (!/^[A-Za-z][A-Za-z\s.'-]{1,119}$/.test(trimmedName)) {
+        if (!CONTACT_NAME_REGEX.test(trimmedName)) {
             toast.error('Please enter a valid name.');
             return;
         }
 
-        if (!/^\d{10}$/.test(trimmedPhone)) {
+        if (!CONTACT_PHONE_REGEX.test(trimmedPhone)) {
             toast.error('Please enter a valid 10-digit phone number.');
             return;
         }
 
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+        if (!CONTACT_EMAIL_REGEX.test(trimmedEmail)) {
             toast.error('Please enter a valid email address.');
             return;
         }
@@ -270,7 +286,7 @@ const InfoPage = ({ type: propType }) => {
                                                 required
                                                 maxLength={120}
                                                 autoComplete="name"
-                                                pattern="[A-Za-z][A-Za-z\s.'-]{1,119}"
+                                                pattern={CONTACT_NAME_REGEX.source}
                                                 title="Enter a valid name using letters and spaces only."
                                             />
                                             <input
@@ -284,7 +300,7 @@ const InfoPage = ({ type: propType }) => {
                                                 maxLength={10}
                                                 autoComplete="tel"
                                                 inputMode="tel"
-                                                pattern="\d{10}"
+                                                pattern={CONTACT_PHONE_REGEX.source}
                                                 title="Enter a 10-digit phone number."
                                             />
                                         </div>
@@ -298,6 +314,8 @@ const InfoPage = ({ type: propType }) => {
                                             required
                                             maxLength={160}
                                             autoComplete="email"
+                                            pattern={CONTACT_EMAIL_REGEX.source}
+                                            title="Enter a valid email address."
                                         />
                                         <textarea
                                             rows="3"

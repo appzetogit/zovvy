@@ -16,7 +16,7 @@ import {
     Shield,
     FileText
 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 
 const API_URL = API_BASE_URL;
 
@@ -78,7 +78,18 @@ const SettingsPage = () => {
     }, [invoiceSettingsData]);
 
     const handleSave = async () => {
-        toast.success("Settings preferences saved! (Simulated)");
+        try {
+            if (activeTab === 'general') {
+                await updateSettingMutation.mutateAsync({
+                    key: 'checkout_fee_config',
+                    value: checkoutFees
+                });
+                return;
+            }
+            toast.success("Settings preferences saved! (Simulated)");
+        } catch (error) {
+            // Error toast already handled in hook
+        }
     };
 
     const handleSendPush = () => {
@@ -97,31 +108,19 @@ const SettingsPage = () => {
         }));
     };
 
-    const handleSaveCheckoutFees = async () => {
-        try {
-            await updateSettingMutation.mutateAsync({
-                key: 'checkout_fee_config',
-                value: checkoutFees
-            });
-            toast.success("Checkout fees saved successfully!");
-        } catch (error) {
-            // Error toast already handled in hook
-        }
-    };
-
     const handleSaveInvoiceSettings = async () => {
         try {
             await updateSettingMutation.mutateAsync({
                 key: 'invoice_settings',
                 value: invoiceSettings
             });
-            toast.success("Invoice settings saved successfully!");
         } catch (error) {
             // Error toast already handled in hook
         }
     };
     return (
         <div className="max-w-7xl mx-auto space-y-6">
+            <Toaster position="top-right" />
             {/* Page Header */}
             <div className="flex items-center justify-between">
                 <div>
@@ -130,6 +129,7 @@ const SettingsPage = () => {
                 </div>
                 <button
                     onClick={handleSave}
+                    disabled={updateSettingMutation.isPending}
                     className="bg-black text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-gray-800 transition-all shadow-lg active:scale-95"
                 >
                     <Save size={16} /> Save Changes
@@ -336,7 +336,7 @@ const SettingsPage = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                             <div className="flex flex-col gap-2">
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Store Name</label>
-                                <input type="text" defaultValue="FarmLyf Dryfruits" className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-black/5 transition-all" />
+                                <input type="text" defaultValue="Zovvy" className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-black/5 transition-all" />
                             </div>
                             <div className="flex flex-col gap-2">
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Support Email</label>
@@ -395,14 +395,6 @@ const SettingsPage = () => {
                                     />
                                 </div>
                             </div>
-                            <button
-                                type="button"
-                                onClick={handleSaveCheckoutFees}
-                                disabled={updateSettingMutation.isPending}
-                                className="mt-5 bg-black text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-gray-800 transition-all shadow-lg active:scale-95 disabled:opacity-60"
-                            >
-                                {updateSettingMutation.isPending ? 'Saving...' : 'Save Checkout Fees'}
-                            </button>
                         </div>
                     </div>
                 )}
@@ -423,7 +415,7 @@ const SettingsPage = () => {
                                     value={invoiceSettings.sellerName}
                                     onChange={(e) => setInvoiceSettings({ ...invoiceSettings, sellerName: e.target.value })}
                                     className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-black/5 transition-all" 
-                                    placeholder="FarmLyf Dryfruits"
+                                    placeholder="Zovvy"
                                 />
                             </div>
                             <div className="flex flex-col gap-2">
@@ -473,7 +465,7 @@ const SettingsPage = () => {
                                     value={invoiceSettings.companyOfficeAddress}
                                     onChange={(e) => setInvoiceSettings({ ...invoiceSettings, companyOfficeAddress: e.target.value })}
                                     className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-black/5 transition-all resize-none" 
-                                    placeholder="FarmLyf PVT LTD, Corporate House, Mumbai - 400001"
+                                    placeholder="Zovvy PVT LTD, Corporate House, Mumbai - 400001"
                                 />
                             </div>
                         </div>

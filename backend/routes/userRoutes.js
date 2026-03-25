@@ -2,7 +2,7 @@ import express from 'express';
 import { 
     getUsers, registerUser, loginUser, logoutUser, 
     getUserProfile, updateUserProfile, toggleBanUser, 
-    getUserById, updateFcmToken, sendOtpForLogin, verifyOtpForLogin 
+    getUserById, updateFcmToken, sendOtpForLogin, verifyOtpForLogin, deleteUser
 } from '../controllers/userController.js';
 import { protect, admin } from '../middleware/authMiddleware.js';
 
@@ -22,5 +22,6 @@ router.put('/fcm-token', protect, updateFcmToken);
 router.get('/', protect, admin, getUsers);
 router.get('/:id', protect, admin, getUserById);
 router.put('/:id/ban', protect, admin, toggleBanUser);
+router.delete('/:id', protect, admin, deleteUser);
 
 export default router;

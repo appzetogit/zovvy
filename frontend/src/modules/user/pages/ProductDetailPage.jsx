@@ -911,11 +911,16 @@ const ProductDetailPage = () => {
                                             return;
                                         }
 
+                                        if (!user) {
+                                            navigate('/login');
+                                            return;
+                                        }
+
                                         if (quantity > currentStock) {
                                             toast.error(`Requested quantity exceeds available stock (${currentStock})`);
                                             return;
                                         }
-                                        addToCart(user?.id, skuId, quantity);
+                                        addToCart(user.id, skuId, quantity);
                                     }}
                                     disabled={isOutOfStock}
                                     className={`flex-1 py-3 rounded-lg font-bold text-sm uppercase tracking-wider transition-colors shadow-sm flex items-center justify-center gap-2 
@@ -950,11 +955,15 @@ const ProductDetailPage = () => {
                             <button
                                 onClick={() => {
                                     const skuId = (isGroupProduct && selectedVariant) ? selectedVariant.id : product.id;
+                                    if (!user) {
+                                        navigate('/login');
+                                        return;
+                                    }
                                     if (quantity > currentStock) {
                                         toast.error(`Requested quantity exceeds available stock (${currentStock})`);
                                         return;
                                     }
-                                    addToCart(user?.id, skuId, quantity);
+                                    addToCart(user.id, skuId, quantity);
                                     navigate('/checkout');
                                 }}
                                 disabled={isOutOfStock}
@@ -1411,4 +1420,5 @@ const ProductDetailPage = () => {
 };
 
 export default ProductDetailPage;
+
 

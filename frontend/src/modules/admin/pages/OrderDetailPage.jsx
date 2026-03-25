@@ -12,12 +12,10 @@ import {
     MapPin,
     CreditCard,
     Phone,
-    Mail,
     Building2,
     FileText,
     Check,
     X,
-    Send,
     User,
     ChevronRight,
     XCircle,
@@ -29,6 +27,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { AdminTable, AdminTableHeader, AdminTableHead, AdminTableBody, AdminTableRow, AdminTableCell } from '../components/AdminTable';
 import InvoiceGenerator from '../components/InvoiceGenerator';
+import { useSetting } from '../../../hooks/useSettings';
 
 const API_URL = API_BASE_URL;
 
@@ -52,6 +51,7 @@ const OrderDetailPage = () => {
     const [trackingLoading, setTrackingLoading] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
     const queryClient = useQueryClient();
+    const { data: checkoutFeeConfigSetting } = useSetting('checkout_fee_config');
 
     // Sync status when order loads
     useEffect(() => {
@@ -129,14 +129,27 @@ const OrderDetailPage = () => {
     const gstNumber = user?.gstNumber || order.gstNumber || null;
     const companyName = isBusiness ? (user?.name || order.userName || order.shippingAddress?.fullName) : null;
 
-    const timelineSteps = [
-        { label: 'Order Placed', status: 'Processing', completed: true, date: new Date(order.date).toLocaleDateString() },
-        { label: 'Payment Confirmed', status: 'Processing', completed: true, date: new Date(order.date).toLocaleDateString() },
-        { label: 'Admin Approved', status: 'Processing', completed: status !== 'Cancelled' && status !== 'Pending', date: 'Pending' },
-        { label: 'Shipment Created', status: 'Shipped', completed: status === 'Shipped' || status === 'Delivered', date: status === 'Shipped' ? new Date().toLocaleDateString() : 'Pending' },
-        { label: 'Out for Delivery', status: 'OutForDelivery', completed: status === 'Delivered', date: 'Pending' },
-        { label: 'Delivered', status: 'Delivered', completed: status === 'Delivered', date: status === 'Delivered' ? new Date().toLocaleDateString() : 'Pending' }
-    ];
+    const timelineSteps = status === 'Cancelled'
+        ? [
+            { label: 'Order Placed', status: 'Processing', completed: true, date: new Date(order.date).toLocaleDateString() },
+            { label: 'Payment Confirmed', status: 'Processing', completed: true, date: new Date(order.date).toLocaleDateString() },
+            {
+                label: 'Order Cancelled',
+                status: 'Cancelled',
+                completed: true,
+                date: order.cancelledAt
+                    ? new Date(order.cancelledAt).toLocaleDateString()
+                    : new Date().toLocaleDateString()
+            }
+        ]
+        : [
+            { label: 'Order Placed', status: 'Processing', completed: true, date: new Date(order.date).toLocaleDateString() },
+            { label: 'Payment Confirmed', status: 'Processing', completed: true, date: new Date(order.date).toLocaleDateString() },
+            { label: 'Admin Approved', status: 'Processing', completed: status !== 'Cancelled' && status !== 'Pending', date: 'Pending' },
+            { label: 'Shipment Created', status: 'Shipped', completed: status === 'Shipped' || status === 'Delivered', date: status === 'Shipped' ? new Date().toLocaleDateString() : 'Pending' },
+            { label: 'Out for Delivery', status: 'OutForDelivery', completed: status === 'Delivered', date: 'Pending' },
+            { label: 'Delivered', status: 'Delivered', completed: status === 'Delivered', date: status === 'Delivered' ? new Date().toLocaleDateString() : 'Pending' }
+        ];
 
     const getStatusColor = (st) => {
         switch (st) {
@@ -220,13 +233,51 @@ const OrderDetailPage = () => {
     const itemsToDisplay = order.items && order.items.length > 0 ? order.items : dummyItems;
 
     // Calculate derived totals from displayed items
-    const derivedSubtotal = itemsToDisplay.reduce((acc, item) => {
+    const computedSubtotal = itemsToDisplay.reduce((acc, item) => {
         const q = item.quantity || item.qty || 1;
         return acc + (item.price * q);
     }, 0);
-    const derivedDiscount = order.discount || 0;
-    const derivedShipping = order.deliveryCharges || 0;
-    const derivedTotal = derivedSubtotal - derivedDiscount + derivedShipping;
+    const derivedSubtotal = Number(order.subtotal ?? computedSubtotal);
+    const derivedDiscount = Number(order.discount || 0);
+    const derivedShipping = Number(order.deliveryCharges || 0);
+    const derivedAdditionalFees = order.additionalFees || {};
+    const hasSavedFeeBreakup =
+        derivedAdditionalFees.paymentHandlingFee !== undefined
+        || derivedAdditionalFees.platformFee !== undefined
+        || derivedAdditionalFees.handlingFee !== undefined;
+
+    let derivedPaymentHandlingFee = Number(derivedAdditionalFees.paymentHandlingFee || 0);
+    let derivedPlatformFee = Number(derivedAdditionalFees.platformFee || 0);
+    let derivedHandlingFee = Number(derivedAdditionalFees.handlingFee || 0);
+    const derivedTotal = Number(
+        order.amount ?? (derivedSubtotal - derivedDiscount + derivedShipping + derivedPaymentHandlingFee + derivedPlatformFee + derivedHandlingFee)
+    );
+
+    if (!hasSavedFeeBreakup) {
+        const inferredTotalFees = Math.max(0, derivedTotal - derivedSubtotal - derivedShipping + derivedDiscount);
+        const cfg = (checkoutFeeConfigSetting?.value && typeof checkoutFeeConfigSetting.value === 'object')
+            ? checkoutFeeConfigSetting.value
+            : {};
+        const cfgPayment = Number(cfg.paymentHandlingFee || 0);
+        const cfgPlatform = Number(cfg.platformFee || 0);
+        const cfgHandling = Number(cfg.handlingFee || 0);
+        const cfgSum = cfgPayment + cfgPlatform + cfgHandling;
+
+        if (inferredTotalFees > 0 && cfgSum > 0) {
+            if (Math.abs(cfgSum - inferredTotalFees) < 0.0001) {
+                derivedPaymentHandlingFee = cfgPayment;
+                derivedPlatformFee = cfgPlatform;
+                derivedHandlingFee = cfgHandling;
+            } else {
+                const ratio = inferredTotalFees / cfgSum;
+                derivedPaymentHandlingFee = Math.round(cfgPayment * ratio);
+                derivedPlatformFee = Math.round(cfgPlatform * ratio);
+                derivedHandlingFee = Math.max(0, inferredTotalFees - derivedPaymentHandlingFee - derivedPlatformFee);
+            }
+        } else if (inferredTotalFees > 0) {
+            derivedHandlingFee = inferredTotalFees;
+        }
+    }
 
     return (
         <div className="space-y-6 pb-20 text-left font-['Inter']">
@@ -414,8 +465,16 @@ const OrderDetailPage = () => {
                                 <span className="font-bold">-₹{derivedDiscount.toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between text-gray-500">
-                                <span className="font-medium">GST (18% Included)</span>
-                                <span className="font-bold text-footerBg">₹{Math.round(derivedSubtotal * 0.18).toLocaleString()}</span>
+                                <span className="font-medium">Payment Handling Fee</span>
+                                <span className="font-bold text-footerBg">₹{derivedPaymentHandlingFee.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between text-gray-500">
+                                <span className="font-medium">Platform Fee</span>
+                                <span className="font-bold text-footerBg">₹{derivedPlatformFee.toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between text-gray-500">
+                                <span className="font-medium">Handling Fee</span>
+                                <span className="font-bold text-footerBg">₹{derivedHandlingFee.toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between text-gray-500">
                                 <span className="font-medium">Shipping Charges</span>
@@ -660,16 +719,6 @@ const OrderDetailPage = () => {
                         </div>
                     )}
 
-                    {/* 10. Notifications */}
-                    <div className="grid grid-cols-2 gap-3">
-                        <button className="flex items-center justify-center gap-2 py-3 bg-green-50 text-green-600 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-green-100 transition-all border border-green-100">
-                            <Send size={14} /> WhatsApp
-                        </button>
-                        <button className="flex items-center justify-center gap-2 py-3 bg-gray-50 text-gray-600 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-gray-100 transition-all border border-gray-100">
-                            <Mail size={14} /> Resend Email
-                        </button>
-                    </div>
-
                 </div>
             </div>
         </div>
@@ -677,3 +726,4 @@ const OrderDetailPage = () => {
 };
 
 export default OrderDetailPage;
+
