@@ -39,6 +39,14 @@ const OrderListPage = () => {
     });
 
     const [searchTerm, setSearchTerm] = useState('');
+    const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+
+    const normalizeStatus = (status) => {
+        const raw = String(status || '').trim().toLowerCase();
+        if (raw === 'pending') return 'Processing';
+        if (raw === 'out for delivery' || raw === 'out_for_delivery') return 'OutForDelivery';
+        return raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : '';
+    };
 
     // Orders are already a flat list from API
     const allOrders = useMemo(() => {
@@ -51,17 +59,21 @@ const OrderListPage = () => {
     const filteredOrders = useMemo(() => {
         return allOrders.filter(order => {
             const matchesSearch =
-                order._id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                order.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                order.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                order.userName?.toLowerCase().includes(searchTerm.toLowerCase());
+                !normalizedSearchTerm ||
+                order._id?.toLowerCase().includes(normalizedSearchTerm) ||
+                order.id?.toLowerCase().includes(normalizedSearchTerm) ||
+                order.user?.name?.toLowerCase().includes(normalizedSearchTerm) ||
+                order.userName?.toLowerCase().includes(normalizedSearchTerm);
 
-            const normalizedStatus = order.status === 'pending' ? 'Processing' : order.status;
-            const matchesStatus = statusFilter === 'All' || normalizedStatus === statusFilter;
+            const normalizedStatus = normalizeStatus(order.status);
+            const matchesStatus =
+                statusFilter === 'All' ||
+                normalizedStatus === statusFilter ||
+                (statusFilter === 'InProgress' && ['Processing', 'Received', 'Processed'].includes(normalizedStatus));
 
             return matchesSearch && matchesStatus;
         });
-    }, [allOrders, searchTerm, statusFilter]);
+    }, [allOrders, normalizedSearchTerm, statusFilter]);
 
     const paginatedOrders = useMemo(() => {
         const startIndex = (currentPage - 1) * itemsPerPage;
@@ -71,7 +83,7 @@ const OrderListPage = () => {
     const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
 
     const getStatusStyles = (st) => {
-        const normalized = st === 'pending' ? 'Processing' : st;
+        const normalized = normalizeStatus(st);
         switch (normalized) {
             case 'Delivered': return 'bg-emerald-50 text-emerald-600 border-emerald-100';
             case 'Shipped': return 'bg-blue-50 text-blue-600 border-blue-100';
@@ -88,9 +100,9 @@ const OrderListPage = () => {
 
     const stats = [
         { label: 'All Order', value: allOrders.length, icon: Package, color: 'bg-indigo-50 text-indigo-500' },
-        { label: 'Pending Order', value: allOrders.filter(o => o.status === 'Processing' || o.status === 'pending').length, icon: Clock, color: 'bg-amber-50 text-amber-500' },
-        { label: 'Delivered Order', value: allOrders.filter(o => o.status === 'Delivered').length, icon: CheckCircle2, color: 'bg-emerald-50 text-emerald-500' },
-        { label: 'Cancelled Order', value: allOrders.filter(o => o.status === 'Cancelled').length, icon: XCircle, color: 'bg-red-50 text-red-500' }
+        { label: 'Pending Order', value: allOrders.filter(o => normalizeStatus(o.status) === 'Processing').length, icon: Clock, color: 'bg-amber-50 text-amber-500' },
+        { label: 'Delivered Order', value: allOrders.filter(o => normalizeStatus(o.status) === 'Delivered').length, icon: CheckCircle2, color: 'bg-emerald-50 text-emerald-500' },
+        { label: 'Cancelled Order', value: allOrders.filter(o => normalizeStatus(o.status) === 'Cancelled').length, icon: XCircle, color: 'bg-red-50 text-red-500' }
     ];
 
     return (
@@ -140,14 +152,14 @@ const OrderListPage = () => {
                 {statusFilter === 'All' && (
                     <div className="flex items-center gap-3 w-full md:w-auto">
                         <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-100 overflow-x-auto no-scrollbar">
-                            {['All', 'Processing', 'Delivered', 'Cancelled'].map(s => (
+                            {['All', 'Processing', 'InProgress', 'Delivered', 'Cancelled'].map(s => (
                                 <button
                                     key={s}
                                     onClick={() => navigate(`/admin/orders?status=${s}`)}
                                     className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${statusFilter === s ? 'bg-white text-primary shadow-sm' : 'text-gray-400 hover:text-footerBg'
                                         }`}
                                 >
-                                    {s === 'Processing' ? 'Pending' : s}
+                                    {s === 'Processing' ? 'Pending' : s === 'InProgress' ? 'In Progress' : s}
                                 </button>
                             ))}
                         </div>
@@ -209,7 +221,7 @@ const OrderListPage = () => {
                                         <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${getStatusStyles(order.status)}`}>
                                             <div className="w-1.5 h-1.5 rounded-full bg-current"></div>
                                             <span className="text-[10px] font-black uppercase tracking-widest">
-                                                {order.status === 'pending' ? 'Processing' : order.status}
+                                                {normalizeStatus(order.status)}
                                             </span>
                                         </div>
                                     </AdminTableCell>

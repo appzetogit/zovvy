@@ -22,7 +22,7 @@ export const useAdminReviews = () => {
     return useQuery({
         queryKey: ['admin-reviews'],
         queryFn: async () => {
-            const res = await fetch(`${API_URL}/reviews/admin`, {
+            const res = await fetch(`${API_URL}/reviews/admin/testimonials`, {
                 headers: getAuthHeaders()
             });
             if (!res.ok) throw new Error('Failed to fetch admin reviews');
@@ -38,13 +38,12 @@ export const useUserReviews = () => {
     return useQuery({
         queryKey: ['user-reviews'],
         queryFn: async () => {
-            // Assuming endpoint for all reviews filtered by role or similar if needed
-            // For now, using same as admin but filtered or a specific "user" endpoint if available
-            const res = await fetch(`${API_URL}/reviews`, {
+            const res = await fetch(`${API_URL}/reviews/admin`, {
                 headers: getAuthHeaders()
             });
             if (!res.ok) throw new Error('Failed to fetch user reviews');
-            return res.json();
+            const reviews = await res.json();
+            return Array.isArray(reviews) ? reviews.filter((review) => !!review.product?.id || !!review.product?.name) : [];
         },
         enabled: isAuthenticated() // Only fetch if authenticated
     });

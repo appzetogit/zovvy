@@ -36,13 +36,15 @@ const LowStockAlertsPage = () => {
     }, [allProducts]);
 
     const [searchTerm, setSearchTerm] = useState('');
+    const normalizedSearchTerm = searchTerm.trim().toLowerCase();
 
     const filteredProducts = useMemo(() => {
         return products.filter(p =>
-            p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            p.sku?.toLowerCase().includes(searchTerm.toLowerCase())
+            !normalizedSearchTerm ||
+            p.name?.toLowerCase().includes(normalizedSearchTerm) ||
+            p.sku?.toLowerCase().includes(normalizedSearchTerm)
         );
-    }, [products, searchTerm]);
+    }, [products, normalizedSearchTerm]);
 
     const outOfStockCount = products.filter(p => p.stock === 0).length;
     const lowStockCount = products.filter(p => p.stock > 0).length;

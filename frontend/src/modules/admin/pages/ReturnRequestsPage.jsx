@@ -130,6 +130,7 @@ const ReturnRequestsPage = () => {
 
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
+    const normalizedSearchTerm = searchTerm.trim().toLowerCase();
 
     const allReturns = useMemo(() => {
         if (Array.isArray(returnsData)) {
@@ -144,15 +145,16 @@ const ReturnRequestsPage = () => {
     const filteredReturns = useMemo(() => {
         return allReturns.filter(ret => {
             const matchesSearch =
-                ret.orderId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                ret.userName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                ret.id?.toString().toLowerCase().includes(searchTerm.toLowerCase());
+                !normalizedSearchTerm ||
+                ret.orderId?.toLowerCase().includes(normalizedSearchTerm) ||
+                ret.userName?.toLowerCase().includes(normalizedSearchTerm) ||
+                ret.id?.toString().toLowerCase().includes(normalizedSearchTerm);
 
             const matchesStatus = statusFilter === 'All' || ret.status === statusFilter;
 
             return matchesSearch && matchesStatus;
         });
-    }, [allReturns, searchTerm, statusFilter]);
+    }, [allReturns, normalizedSearchTerm, statusFilter]);
 
     const paginatedReturns = useMemo(() => {
         const startIndex = (currentPage - 1) * itemsPerPage;
@@ -235,7 +237,7 @@ const ReturnRequestsPage = () => {
                 {statusFilter === 'All' && (
                     <div className="flex items-center gap-3 w-full md:w-auto">
                         <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-100">
-                            {['All', 'Pending', 'Approved', 'Refunded', 'Rejected'].map(s => (
+                            {['All', 'Pending', 'Approved', 'Completed', 'Refunded', 'Rejected'].map(s => (
                                 <button
                                     key={s}
                                     onClick={() => setStatusFilter(s)}

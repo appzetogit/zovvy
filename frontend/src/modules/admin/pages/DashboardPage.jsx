@@ -8,13 +8,10 @@ import {
     Box,
     FileWarning,
     History,
-    TrendingUp,
     AlertTriangle,
     Layers,
     Boxes,
     CheckCircle2,
-    Truck,
-    MapPin,
     XCircle,
     TicketPercent,
     Share2,
@@ -50,9 +47,29 @@ const DashboardPage = () => {
 
     // Calculate Stats
     const stats = useMemo(() => {
+        const normalizeStatus = (status) => {
+            const raw = String(status || '').trim().toLowerCase();
+            if (raw === 'pending') return 'Processing';
+            if (raw === 'out for delivery' || raw === 'out_for_delivery') return 'OutForDelivery';
+            if (raw === 'in progress' || raw === 'in_progress') return 'InProgress';
+            if (raw === 'complete') return 'Completed';
+            return raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : '';
+        };
+
+        const getProductStock = (product) => {
+            if (Array.isArray(product.variants) && product.variants.length > 0) {
+                return product.variants.reduce((sum, variant) => sum + (Number(variant.stock) || 0), 0);
+            }
+            return Number(product?.stock?.quantity) || 0;
+        };
+
+        const uniqueCategoriesCount = new Set(
+            categories.map((cat) => String(cat._id || cat.id || cat.slug || cat.name || '').trim()).filter(Boolean)
+        ).size;
+
         // Business Overview
         const totalRevenue = orders
-            .filter(order => order.status !== 'Cancelled')
+            .filter(order => normalizeStatus(order.status) !== 'Cancelled')
             .reduce((acc, order) => acc + (order.amount || 0), 0);
         const combos = products.filter(p =>
             p.category === 'combos-packs' ||
@@ -62,39 +79,36 @@ const DashboardPage = () => {
         );
 
         // Order Breakdown
-        const pendingOrders = orders.filter(o => o.status === 'Processing').length;
-        const deliveredOrders = orders.filter(o => o.status === 'Delivered').length;
-        const shippedOrders = orders.filter(o => o.status === 'Shipped').length;
-        const outForDelivery = orders.filter(o => o.status === 'OutForDelivery').length;
-        const cancelledOrders = orders.filter(o => o.status === 'Cancelled').length;
-        const processingOrders = orders.filter(o => ['Received', 'Processed'].includes(o.status)).length;
+        const pendingOrders = orders.filter(o => ['Processing'].includes(normalizeStatus(o.status))).length;
+        const deliveredOrders = orders.filter(o => normalizeStatus(o.status) === 'Delivered').length;
+        const cancelledOrders = orders.filter(o => normalizeStatus(o.status) === 'Cancelled').length;
 
         // Inventory
-        const outOfStock = products.filter(p => !p.variants || p.variants.every(v => v.stock === 0)).length;
-        const lowStock = products.filter(p => p.variants && p.variants.some(v => v.stock > 0 && v.stock < 15)).length;
+        const outOfStock = products.filter((product) => getProductStock(product) <= 0).length;
+        const lowStock = products.filter((product) => {
+            const stock = getProductStock(product);
+            return stock > 0 && stock < 15;
+        }).length;
 
         // Returns
         const pendingReturns = returns.filter(r => r.status === 'Pending').length;
         const activeReplacements = returns.filter(r => r.type === 'replacement' && r.status !== 'Completed').length;
-        const completedReturns = returns.filter(r => r.status === 'Completed').length;
+        const completedReturns = returns.filter(r => ['Completed', 'Refunded'].includes(r.status)).length;
 
         return [
             // Section 1: Business Overview
             { label: 'Total Users', value: totalUsersCount, icon: Users, color: 'text-blue-500', link: '/admin/users' },
             { label: 'Total Revenue', value: `₹${totalRevenue.toLocaleString()}`, icon: Banknote, color: 'text-emerald-500', link: '/admin/orders' },
-            { label: 'Total Categories', value: categories.length, icon: Layers, color: 'text-indigo-500', link: '/admin/categories' },
+            { label: 'Total Categories', value: uniqueCategoriesCount, icon: Layers, color: 'text-indigo-500', link: '/admin/categories' },
             { label: 'Total Subcategories', value: subcategories.length, icon: Layers, color: 'text-violet-500', link: '/admin/sub-categories' },
             { label: 'Total Products', value: products.length, icon: Box, color: 'text-amber-500', link: '/admin/products' },
             { label: 'Total Combos', value: combos.length, icon: Boxes, color: 'text-orange-500', link: '/admin/combo-products' },
 
             // Section 2: Order Analytics
-            { label: 'Total Orders', value: orders.length, icon: ShoppingBag, color: 'text-slate-500', link: '/admin/orders' },
-            { label: 'Pending Orders', value: pendingOrders, icon: Clock, color: 'text-amber-600', link: '/admin/orders?status=Processing', badge: 'Action Required' },
-            { label: 'Delivered Orders', value: deliveredOrders, icon: CheckCircle2, color: 'text-emerald-600', link: '/admin/orders?status=Delivered' },
-            { label: 'Shipped Orders', value: shippedOrders, icon: Truck, color: 'text-blue-600', link: '/admin/orders?status=Shipped' },
-            { label: 'Out for Delivery', value: outForDelivery, icon: MapPin, color: 'text-purple-600', link: '/admin/orders?status=OutForDelivery' },
-            { label: 'Cancelled Orders', value: cancelledOrders, icon: XCircle, color: 'text-red-500', link: '/admin/orders?status=Cancelled' },
-            { label: 'In-Process', value: processingOrders, icon: TrendingUp, color: 'text-teal-500', link: '/admin/orders' },
+            { label: 'All Order', value: orders.length, icon: ShoppingBag, color: 'text-slate-500', link: '/admin/orders' },
+            { label: 'Pending Order', value: pendingOrders, icon: Clock, color: 'text-amber-600', link: '/admin/orders?status=Processing', badge: 'Action Required' },
+            { label: 'Delivered Order', value: deliveredOrders, icon: CheckCircle2, color: 'text-emerald-600', link: '/admin/orders?status=Delivered' },
+            { label: 'Cancelled Order', value: cancelledOrders, icon: XCircle, color: 'text-red-500', link: '/admin/orders?status=Cancelled' },
 
             // Section 3: Inventory
             { label: 'Sold Out', value: outOfStock, icon: FileWarning, color: 'text-red-600', link: '/admin/inventory/alerts', badge: outOfStock > 0 ? 'Urgent' : null },
@@ -103,13 +117,13 @@ const DashboardPage = () => {
             // Section 4: Returns
             { label: 'Pending Returns', value: pendingReturns, icon: History, color: 'text-orange-500', link: '/admin/returns', badge: pendingReturns > 0 ? 'New' : null },
             { label: 'Active Replacements', value: activeReplacements, icon: History, color: 'text-blue-500', link: '/admin/replacements' },
-            { label: 'Completed Returns', value: completedReturns, icon: CheckCircle2, color: 'text-emerald-500', link: '/admin/returns' },
+            { label: 'Completed Returns', value: completedReturns, icon: CheckCircle2, color: 'text-emerald-500', link: '/admin/returns?status=Refunded' },
 
             // Section 5: Engagement
             { label: 'Active Coupons', value: coupons.filter(c => c.active).length, icon: TicketPercent, color: 'text-pink-500', link: '/admin/coupons' },
             { label: 'Total Referrals', value: referrals.length, icon: Share2, color: 'text-cyan-500', link: '/admin/referrals' },
-            { label: 'User Reviews', value: userReviews.length, icon: MessageSquare, color: 'text-blue-400', link: '/admin/reviews' },
-            { label: 'Admin Reviews', value: adminReviews.length, icon: ShieldCheck, color: 'text-slate-600', link: '/admin/reviews' },
+            { label: 'User Reviews', value: userReviews.length, icon: MessageSquare, color: 'text-blue-400', link: '/admin/reviews?tab=user' },
+            { label: 'Admin Reviews', value: adminReviews.length, icon: ShieldCheck, color: 'text-slate-600', link: '/admin/reviews?tab=admin' },
         ];
     }, [orders, products, returns, userData, categories, subcategories, coupons, referrals, userReviews, adminReviews]);
 

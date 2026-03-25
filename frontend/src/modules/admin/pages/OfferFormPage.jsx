@@ -217,7 +217,7 @@ const OfferFormPage = () => {
                                 type="text"
                                 placeholder="Search products by name or SKU..."
                                 value={productSearch}
-                                onChange={(e) => setProductSearch(e.target.value)}
+                            onChange={(e) => setProductSearch(e.target.value)}
                                 className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 pl-12 pr-4 text-sm font-bold outline-none focus:bg-white focus:border-primary transition-all shadow-inner"
                             />
                         </div>

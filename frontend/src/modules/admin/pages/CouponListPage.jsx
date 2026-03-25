@@ -193,7 +193,7 @@ const CouponListPage = () => {
                                         <button
                                             key={suggestion.id || suggestion._id}
                                             onClick={() => {
-                                                setSearchTerm(suggestion.code);
+                                                setSearchTerm(String(suggestion.code || ''));
                                                 setShowSuggestions(false);
                                             }}
                                             className="w-full flex items-center gap-3 p-2.5 hover:bg-gray-50 rounded-xl transition-colors text-left group"

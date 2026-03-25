@@ -45,7 +45,7 @@ const UsersPage = () => {
     // Debounce search term
     useEffect(() => {
         const timer = setTimeout(() => {
-            setDebouncedSearch(searchTerm);
+            setDebouncedSearch(searchTerm.trim());
             setPage(1); // Reset to first page on new search
         }, 300);
         return () => clearTimeout(timer);

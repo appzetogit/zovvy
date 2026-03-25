@@ -13,6 +13,7 @@ import {
     Copy,
     ChevronDown,
     ChevronUp,
+    ChevronRight,
     Star,
     Calendar,
     Settings,
@@ -121,15 +122,18 @@ const ProductListPage = () => {
         });
     };
 
+    const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+
     const filteredProducts = useMemo(() => {
         return products
             .filter(product => {
                 const matchesSearch =
-                    product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    product.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    String(product._id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    (typeof product.category === 'string' ? product.category : product.category?.name)?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    product.subcategory?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+                    !normalizedSearchTerm ||
+                    product.name?.toLowerCase().includes(normalizedSearchTerm) ||
+                    product.brand?.toLowerCase().includes(normalizedSearchTerm) ||
+                    String(product._id || '').toLowerCase().includes(normalizedSearchTerm) ||
+                    (typeof product.category === 'string' ? product.category : product.category?.name)?.toLowerCase().includes(normalizedSearchTerm) ||
+                    product.subcategory?.name?.toLowerCase().includes(normalizedSearchTerm);
 
                 const matchesCategory = filterCategory === 'All' || 
                     (typeof product.category === 'string' ? product.category === filterCategory : product.category?.name === filterCategory);
@@ -137,17 +141,17 @@ const ProductListPage = () => {
                 return matchesSearch && matchesCategory;
             })
             .sort((a, b) => (String(b._id || '').localeCompare(String(a._id || '')) || 0)); // Assuming higher ID is newer
-    }, [products, searchTerm, filterCategory]);
+    }, [products, normalizedSearchTerm, filterCategory]);
 
     const suggestions = useMemo(() => {
-        if (searchTerm.length < 2) return [];
+        if (normalizedSearchTerm.length < 2) return [];
         return products
             .filter(p =>
-                p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                p.brand?.toLowerCase().includes(searchTerm.toLowerCase())
+                p.name?.toLowerCase().includes(normalizedSearchTerm) ||
+                p.brand?.toLowerCase().includes(normalizedSearchTerm)
             )
             .slice(0, 6);
-    }, [products, searchTerm]);
+    }, [products, normalizedSearchTerm]);
 
     const paginatedProducts = useMemo(() => {
         const startIndex = (currentPage - 1) * itemsPerPage;
@@ -254,7 +258,7 @@ const ProductListPage = () => {
                                         <button
                                             key={suggestion.id}
                                             onClick={() => {
-                                                setSearchTerm(suggestion.name);
+                                                setSearchTerm(String(suggestion.name || ''));
                                                 setShowSuggestions(false);
                                             }}
                                             className="w-full flex items-center gap-3 p-2 hover:bg-gray-50 rounded-xl transition-colors text-left group"
