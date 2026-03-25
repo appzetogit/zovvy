@@ -95,7 +95,7 @@ const CartPage = () => {
 
     const moveToCartFromSaved = (userId, packId) => {
         // Find item qty from saved
-        const savedItem = saveForLater(userId).find(i => i.packId === packId);
+        const savedItem = saveForLater(userId).find(i => String(i.packId) === String(packId));
         if (savedItem) {
             addToCart(userId, packId, savedItem.qty);
             removeFromSaved(userId, packId);

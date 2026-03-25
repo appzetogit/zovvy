@@ -26,6 +26,7 @@ import {
     Zap,
     FileText
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { useWebsiteContent, useUpdateWebsiteContent, useAllWebsiteContent } from '../../../hooks/useContent';
 import { PAGES_CONFIG } from '../../../config/pagesConfig';
@@ -99,6 +100,7 @@ const FooterManagerPage = () => {
                 content: config,
                 slug: 'footer-config'
             });
+            toast.success('Footer configuration saved successfully!');
             setIsEditing(false);
         } catch (error) {
             console.error("Failed to save footer config", error);

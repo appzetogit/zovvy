@@ -430,7 +430,6 @@ export const useUpdateWebsiteContent = (slug) => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['page-content', slug] });
             queryClient.invalidateQueries({ queryKey: ['page-content', 'all'] });
-            toast.success('Page content updated successfully!');
         },
         onError: (err) => toast.error(err.message)
     });

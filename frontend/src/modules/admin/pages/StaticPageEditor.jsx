@@ -4,7 +4,7 @@ import { ArrowLeft, Save, RotateCcw, Globe, Eye } from 'lucide-react';
 import ReactQuill, { Quill } from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import BlotFormatter from 'quill-blot-formatter';
-import toast from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 import { useWebsiteContent, useUpdateWebsiteContent } from '../../../hooks/useContent';
 import { useUploadImage } from '../../../hooks/useProducts';
 import { PAGES_CONFIG } from '../../../config/pagesConfig';
@@ -27,6 +27,7 @@ const StaticPageEditor = () => {
     const updateMutation = useUpdateWebsiteContent(pageId);
     const uploadMutation = useUploadImage();
     const quillRef = useRef(null);
+    const isSavingRef = useRef(false);
 
     const [content, setContent] = useState('');
     const [title, setTitle] = useState('');
@@ -69,8 +70,14 @@ const StaticPageEditor = () => {
     }, [pageId, navigate, pageConfig, pageData, loading]);
 
     const handleSave = async () => {
+        if (isSavingRef.current || updateMutation.isPending) {
+            toast('Save is already in progress...');
+            return;
+        }
+
         console.log('StaticPageEditor: Starting handleSave', { pageId, title, content });
         try {
+            isSavingRef.current = true;
             const dataToSave = {
                 title: title,
                 content: content,
@@ -78,10 +85,20 @@ const StaticPageEditor = () => {
             };
             console.log('StaticPageEditor: Sending data to mutation', dataToSave);
 
-            await updateMutation.mutateAsync(dataToSave);
+            await toast.promise(
+                updateMutation.mutateAsync(dataToSave),
+                {
+                    loading: 'Saving content...',
+                    success: 'Content saved successfully!',
+                    error: 'Failed to save content'
+                },
+                { id: `static-page-save-${pageId}` }
+            );
             console.log('StaticPageEditor: Save successful');
         } catch (error) {
             console.error('StaticPageEditor: Save failed', error);
+        } finally {
+            isSavingRef.current = false;
         }
     };
 
@@ -157,6 +174,14 @@ const StaticPageEditor = () => {
 
     return (
         <div className="space-y-6 font-['Inter'] pb-32">
+            <Toaster
+                position="top-right"
+                toastOptions={{
+                    duration: 3000,
+                    style: { zIndex: 99999 }
+                }}
+                containerStyle={{ zIndex: 99999 }}
+            />
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex items-center gap-4">
@@ -182,7 +207,7 @@ const StaticPageEditor = () => {
 
                 <div className="flex gap-3">
                     <a
-                        href={`/${pageId}`}
+                        href={`/pages/${pageId}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-4 py-2.5 rounded-xl bg-white border border-gray-200 text-gray-600 text-xs font-bold hover:bg-gray-50 flex items-center gap-2"

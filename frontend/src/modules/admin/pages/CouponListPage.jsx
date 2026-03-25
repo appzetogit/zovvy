@@ -261,7 +261,7 @@ const CouponListPage = () => {
                                                             <Copy size={12} />
                                                         </button>
                                                     </div>
-                                                    <p className="text-[10px] font-bold text-gray-400 mt-0.5 line-clamp-1 max-w-[220px]">
+                                                    <p className="text-[11px] font-semibold text-gray-500 mt-0.5 line-clamp-1 max-w-[240px]">
                                                         {coupon.description || 'Global promotional offer'}
                                                     </p>
                                                 </div>
@@ -277,7 +277,7 @@ const CouponListPage = () => {
                                                     <p className="text-sm font-black text-footerBg">
                                                         {coupon.type === 'percent' ? `${coupon.value}%` : `₹${coupon.value}`} OFF
                                                     </p>
-                                                    <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Min Rev: ₹{coupon.minOrderValue}</p>
+                                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Min Rev: ₹{coupon.minOrderValue}</p>
                                                 </div>
                                             </div>
                                         </AdminTableCell>
@@ -285,8 +285,8 @@ const CouponListPage = () => {
                                         <AdminTableCell>
                                             <div className="w-full max-w-[140px] space-y-2">
                                                 <div className="flex justify-between items-end">
-                                                    <span className="text-[10px] font-black text-footerBg tracking-tight font-mono">{coupon.usageCount} <span className="text-gray-300 font-sans">Used</span></span>
-                                                    <span className="text-[8px] font-black text-gray-300 uppercase">{coupon.usageLimit ? `${coupon.usageLimit} Cap` : '∞ Uncapped'}</span>
+                                                    <span className="text-[11px] font-black text-footerBg tracking-tight font-mono">{coupon.usageCount} <span className="text-gray-500 font-sans">Used</span></span>
+                                                    <span className="text-[9px] font-black text-gray-500 uppercase">{coupon.usageLimit ? `${coupon.usageLimit} Cap` : '∞ Uncapped'}</span>
                                                 </div>
                                                 <div className="h-1.5 w-full bg-gray-50 rounded-full overflow-hidden border border-gray-100">
                                                     <motion.div
@@ -300,10 +300,10 @@ const CouponListPage = () => {
 
                                         <AdminTableCell>
                                             <div className="flex items-center gap-3">
-                                                <Calendar size={14} className="text-gray-400" />
+                                                <Calendar size={14} className="text-gray-500" />
                                                 <div>
-                                                    <p className="text-[10px] font-black text-footerBg uppercase">Expires {new Date(coupon.validUntil).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</p>
-                                                    <p className="text-[9px] font-bold text-gray-300 uppercase tracking-tighter">Started {new Date(coupon.createdAt || Date.now()).toLocaleDateString()}</p>
+                                                    <p className="text-[11px] font-black text-footerBg uppercase">Expires {new Date(coupon.validUntil).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</p>
+                                                    <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-tighter">Started {new Date(coupon.createdAt || Date.now()).toLocaleDateString()}</p>
                                                 </div>
                                             </div>
                                         </AdminTableCell>

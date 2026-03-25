@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { Plus, Search, Edit, Trash2, FileText, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -7,12 +7,35 @@ import { useBlogs, useDeleteBlog } from '../../../hooks/useContent';
 const BlogListPage = () => {
     const { data: blogs = [], isLoading } = useBlogs();
     const deleteBlogMutation = useDeleteBlog();
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('all');
 
     const handleDelete = (id) => {
         if (window.confirm("Are you sure you want to delete this blog?")) {
             deleteBlogMutation.mutate(id);
         }
     };
+
+    const availableCategories = useMemo(() => {
+        const cats = blogs
+            .map((blog) => String(blog?.category || '').trim())
+            .filter(Boolean);
+        return Array.from(new Set(cats));
+    }, [blogs]);
+
+    const filteredBlogs = useMemo(() => {
+        const normalizedSearch = searchTerm.trim().toLowerCase();
+        return blogs.filter((blog) => {
+            const category = String(blog?.category || '').trim();
+            const matchesCategory = selectedCategory === 'all' || category === selectedCategory;
+            if (!matchesCategory) return false;
+
+            if (!normalizedSearch) return true;
+            const title = String(blog?.title || '').toLowerCase();
+            const excerpt = String(blog?.excerpt || '').toLowerCase();
+            return title.includes(normalizedSearch) || excerpt.includes(normalizedSearch);
+        });
+    }, [blogs, selectedCategory, searchTerm]);
 
     if (isLoading) {
         return (
@@ -46,20 +69,27 @@ const BlogListPage = () => {
                         type="text"
                         placeholder="Search blogs..."
                         className="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-xl text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-black/5"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
                 <div className="flex gap-2">
-                    <select className="px-4 py-3 bg-gray-50 rounded-xl text-sm font-bold text-gray-600 outline-none cursor-pointer">
-                        <option>All Categories</option>
-                        <option>Health</option>
-                        <option>Recipes</option>
+                    <select
+                        className="px-4 py-3 bg-gray-50 rounded-xl text-sm font-bold text-gray-600 outline-none cursor-pointer"
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
+                    >
+                        <option value="all">All Categories</option>
+                        {availableCategories.map((category) => (
+                            <option key={category} value={category}>{category}</option>
+                        ))}
                     </select>
                 </div>
             </div>
 
             {/* Blog List Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {blogs.map(blog => (
+                {filteredBlogs.map(blog => (
                     <div key={blog._id} className="bg-white rounded-[2rem] border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-all group">
                         {/* Image */}
                         <div className="h-40 overflow-hidden relative">
@@ -109,7 +139,7 @@ const BlogListPage = () => {
                 ))}
             </div>
 
-            {blogs.length === 0 && (
+            {filteredBlogs.length === 0 && (
                 <div className="text-center py-20 bg-gray-50 rounded-[2.5rem] border border-dashed border-gray-200">
                     <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
                         <FileText size={32} />

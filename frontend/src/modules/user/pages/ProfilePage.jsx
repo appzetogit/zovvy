@@ -101,6 +101,13 @@ const ProfilePage = () => {
 
     const handleUpdateProfile = async (e) => {
         e.preventDefault();
+        if (editForm.birthDate) {
+            const today = new Date().toISOString().split('T')[0];
+            if (editForm.birthDate > today) {
+                toast.error('Date of birth cannot be in the future');
+                return;
+            }
+        }
         try {
             await updateProfileMutation.mutateAsync({
                 name: editForm.name,
@@ -761,6 +768,7 @@ const ProfilePage = () => {
                                     <input
                                         type="date"
                                         value={editForm.birthDate}
+                                        max={new Date().toISOString().split('T')[0]}
                                         onChange={(e) => setEditForm({ ...editForm, birthDate: e.target.value })}
                                         className="w-full bg-gray-50 border border-gray-100 rounded-none px-6 py-3 font-bold text-footerBg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-xs"
                                     />
@@ -998,6 +1006,7 @@ const ProfilePage = () => {
                                                     <input
                                                         type="date"
                                                         value={editForm.birthDate}
+                                                        max={new Date().toISOString().split('T')[0]}
                                                         onChange={(e) => setEditForm({ ...editForm, birthDate: e.target.value })}
                                                         className="w-full bg-white/10 border border-white/20 rounded-xl md:rounded-2xl px-3 md:px-6 py-2.5 md:py-3.5 font-semibold text-white outline-none focus:border-primary transition-all text-[10px]"
                                                     />

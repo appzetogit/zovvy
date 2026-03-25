@@ -105,6 +105,56 @@ const OrderListPage = () => {
         { label: 'Cancelled Order', value: allOrders.filter(o => normalizeStatus(o.status) === 'Cancelled').length, icon: XCircle, color: 'bg-red-50 text-red-500' }
     ];
 
+    const escapeCsvValue = (value) => {
+        const str = String(value ?? '');
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+            return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+    };
+
+    const handleExportReports = () => {
+        const headers = [
+            'Order ID',
+            'Date',
+            'Customer',
+            'Payment Method',
+            'Items',
+            'Amount',
+            'Order Status',
+            'Courier',
+            'AWB'
+        ];
+
+        const rows = filteredOrders.map((order) => ([
+            order.id || order._id || '',
+            new Date(order.date || order.createdAt || Date.now()).toLocaleDateString('en-GB'),
+            order.userName || order.shippingAddress?.fullName || 'Unknown',
+            order.paymentMethod === 'cod' ? 'COD' : 'Online',
+            order.items?.length || 0,
+            Number(order.amount || 0),
+            normalizeStatus(order.status),
+            order.courierName || '',
+            order.awbCode || ''
+        ]));
+
+        const csvContent = [headers, ...rows]
+            .map((row) => row.map(escapeCsvValue).join(','))
+            .join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const safeStatus = String(statusFilter || 'All').replace(/[^a-z0-9_-]/gi, '');
+        const date = new Date().toISOString().slice(0, 10);
+        link.href = url;
+        link.setAttribute('download', `orders_${safeStatus}_${date}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    };
+
     return (
         <div className="space-y-8 text-left">
             {/* Header */}
@@ -113,7 +163,10 @@ const OrderListPage = () => {
                     <h1 className="text-xl font-black text-footerBg uppercase tracking-tight">Order Management</h1>
                     <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-[0.2em]">Monitor and fulfill customer dryfruit orders</p>
                 </div>
-                <button className="bg-footerBg text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-black transition-all shadow-lg shadow-footerBg/20">
+                <button
+                    onClick={handleExportReports}
+                    className="bg-footerBg text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-black transition-all shadow-lg shadow-footerBg/20"
+                >
                     <Download size={18} /> Export Reports
                 </button>
             </div>

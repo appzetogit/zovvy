@@ -75,7 +75,8 @@ const useUserStore = create(
             removeFromSaved: (userId, packId) => {
                 const allSaved = get().saveForLater;
                 if (allSaved[userId]) {
-                    const userSaved = allSaved[userId].filter(item => item.packId !== packId);
+                    const targetId = String(packId);
+                    const userSaved = allSaved[userId].filter(item => String(item.packId) !== targetId);
                     set({ saveForLater: { ...allSaved, [userId]: userSaved } });
                 }
             },

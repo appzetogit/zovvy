@@ -255,7 +255,22 @@ export const updateUserProfile = asyncHandler(async (req, res) => {
             user.phone = normalizedPhone;
         }
         if (req.body.gender !== undefined) user.gender = req.body.gender;
-        if (req.body.birthDate !== undefined) user.birthDate = req.body.birthDate;
+        if (req.body.birthDate !== undefined) {
+            const normalizedBirthDate = String(req.body.birthDate || '').trim();
+            if (normalizedBirthDate) {
+                const birthDateObj = new Date(normalizedBirthDate);
+                if (Number.isNaN(birthDateObj.getTime())) {
+                    return res.status(400).json({ message: 'Please provide a valid date of birth' });
+                }
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                birthDateObj.setHours(0, 0, 0, 0);
+                if (birthDateObj > today) {
+                    return res.status(400).json({ message: 'Date of birth cannot be in the future' });
+                }
+            }
+            user.birthDate = normalizedBirthDate;
+        }
         if (req.body.accountType !== undefined) user.accountType = req.body.accountType;
         if (req.body.gstNumber !== undefined) user.gstNumber = req.body.gstNumber;
         

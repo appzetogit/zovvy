@@ -19,7 +19,7 @@ import {
     Tag,
     Eye
 } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../context/AuthContext';
@@ -150,7 +150,8 @@ const CouponFormPage = () => {
             const method = isEdit ? 'PUT' : 'POST';
             const res = await fetch(url, {
                 method,
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                credentials: 'include',
                 body: JSON.stringify(payload)
             });
             if (!res.ok) {
@@ -160,46 +161,56 @@ const CouponFormPage = () => {
             return res.json();
         },
         onSuccess: () => {
-            queryClient.invalidateQueries(['coupons']);
-            toast.success(isEdit ? 'Updated!' : 'Created!');
+            queryClient.invalidateQueries({ queryKey: ['coupons'] });
             navigate('/admin/coupons');
         },
         onError: (err) => toast.error(err.message)
     });
 
-    const handleSave = (e) => {
-        e.preventDefault();
-        if (!formData.code || !formData.value) {
-            return toast.error('Code and Value required');
+    const handleSave = () => {
+        const normalizedCode = String(formData.code || '').trim().toUpperCase();
+
+        if (!normalizedCode) {
+            return toast.error('Coupon code is required');
+        }
+
+        if (formData.type !== 'free_shipping' && (formData.value === '' || formData.value === null || formData.value === undefined)) {
+            return toast.error('Coupon value is required');
         }
         if (formData.userEligibility === 'selected' && (!formData.selectedUsers || formData.selectedUsers.length === 0)) {
             return toast.error('Please select at least one user for selected-users coupon');
         }
-        setLoading(true);
-        
+
         // Date Validation
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        
+
+        if (formData.validFrom) {
+            const fromDate = new Date(formData.validFrom);
+            if (fromDate < today) {
+                return toast.error('Start date cannot be in the past');
+            }
+        }
+
         if (formData.validUntil) {
             const untilDate = new Date(formData.validUntil);
             if (untilDate < today) {
-                setLoading(false);
                 return toast.error('End date cannot be in the past');
             }
-            
+
             if (formData.validFrom) {
                 const fromDate = new Date(formData.validFrom);
                 if (untilDate < fromDate) {
-                    setLoading(false);
                     return toast.error('End date cannot be before start date');
                 }
             }
         }
 
+        setLoading(true);
         const payload = {
             ...formData,
-            value: Number(formData.value),
+            code: normalizedCode,
+            value: formData.type === 'free_shipping' ? 0 : Number(formData.value),
             minOrderValue: Number(formData.minOrderValue),
             maxDiscount: Number(formData.maxDiscount) || null,
             usageLimit: Number(formData.usageLimit) || 1000,
@@ -208,7 +219,14 @@ const CouponFormPage = () => {
                 ? [...new Set((formData.selectedUsers || []).filter(Boolean))]
                 : []
         };
-        mutation.mutate(payload, { onSettled: () => setLoading(false) });
+        toast.promise(
+            mutation.mutateAsync(payload),
+            {
+                loading: isEdit ? 'Updating coupon...' : 'Creating coupon...',
+                success: isEdit ? 'Coupon updated successfully!' : 'Coupon created successfully!',
+                error: (error) => error?.message || 'Failed to save coupon'
+            }
+        ).finally(() => setLoading(false));
     };
 
     const generateCode = () => {
@@ -220,6 +238,11 @@ const CouponFormPage = () => {
 
     return (
         <div className="space-y-6 pb-12 text-left font-['Inter']">
+            <Toaster
+                position="top-right"
+                toastOptions={{ duration: 3000, style: { zIndex: 99999 } }}
+                containerStyle={{ zIndex: 99999 }}
+            />
             {/* Compact Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
@@ -241,12 +264,14 @@ const CouponFormPage = () => {
                 </div>
                 <div className="flex items-center gap-2">
                     <button
+                        type="button"
                         onClick={() => navigate('/admin/coupons')}
                         className="px-4 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest text-gray-400 hover:text-footerBg transition-all"
                     >
                         Cancel
                     </button>
                     <button
+                        type="button"
                         onClick={handleSave}
                         disabled={loading}
                         className="bg-footerBg text-white px-6 py-2.5 rounded-xl font-black text-[9px] uppercase tracking-widest flex items-center gap-2 hover:bg-black transition-all shadow-lg shadow-footerBg/10 disabled:opacity-70 group"
@@ -478,11 +503,25 @@ const CouponFormPage = () => {
                         <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
                             <div className="space-y-1">
                                 <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Starts</label>
-                                <input type="date" name="validFrom" value={formData.validFrom} onChange={handleChange} className="w-full bg-gray-50 border border-transparent rounded-xl p-3 text-[10px] font-black outline-none focus:bg-white focus:border-footerBg" />
+                                <input
+                                    type="date"
+                                    name="validFrom"
+                                    value={formData.validFrom}
+                                    min={new Date().toISOString().split('T')[0]}
+                                    onChange={handleChange}
+                                    className="w-full bg-gray-50 border border-transparent rounded-xl p-3 text-[10px] font-black outline-none focus:bg-white focus:border-footerBg"
+                                />
                             </div>
                             <div className="space-y-1">
                                 <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Ends</label>
-                                <input type="date" name="validUntil" value={formData.validUntil} onChange={handleChange} className="w-full bg-gray-50 border border-transparent rounded-xl p-3 text-[10px] font-black outline-none focus:bg-white focus:border-footerBg" />
+                                <input
+                                    type="date"
+                                    name="validUntil"
+                                    value={formData.validUntil}
+                                    min={formData.validFrom || new Date().toISOString().split('T')[0]}
+                                    onChange={handleChange}
+                                    className="w-full bg-gray-50 border border-transparent rounded-xl p-3 text-[10px] font-black outline-none focus:bg-white focus:border-footerBg"
+                                />
                             </div>
                         </div>
                     </div>
