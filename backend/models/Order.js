@@ -67,6 +67,9 @@ const orderSchema = new mongoose.Schema({
   refundId: String,
   refundStatus: { type: String, enum: ['pending', 'processed', 'failed', 'not_applicable'], default: 'not_applicable' },
   refundAmount: Number,
+  refundCurrency: { type: String, default: 'INR' },
+  refundProcessedAt: Date,
+  refundFailureReason: String,
   cancelledAt: Date,
   cancellationReason: String
 }, { timestamps: true });
