@@ -131,9 +131,10 @@ const OrderDetailPage = () => {
     const canReturn = isDelivered && isWithinReturnWindow() && availableItemsCount > 0;
 
     // Check if order can be cancelled
-    const cancellableStatuses = ['pending', 'Processing', 'Received', 'Processed'];
-    const canCancel = cancellableStatuses.includes(order.status) && order.status !== 'Cancelled';
-    const isCancelled = order.status === 'Cancelled';
+    const cancellableStatuses = ['pending', 'processing', 'received', 'processed', 'packed', 'shipped'];
+    const normalizedOrderStatus = String(order.status || '').toLowerCase();
+    const canCancel = cancellableStatuses.includes(normalizedOrderStatus) && normalizedOrderStatus !== 'cancelled';
+    const isCancelled = normalizedOrderStatus === 'cancelled';
     const hasRefundRequested = isCancelled
         && order.paymentMethod !== 'cod'
         && ['pending', 'processed', 'failed'].includes(order.refundStatus);

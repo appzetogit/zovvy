@@ -145,11 +145,12 @@ export const cancelOrder = asyncHandler(async (req, res) => {
       return res.status(404).json({ message: 'Order not found' });
     }
 
-    // Check if order can be cancelled (only pending/processing orders)
-    const cancellableStatuses = ['pending', 'Processing', 'Received', 'Processed'];
-    if (!cancellableStatuses.includes(order.status)) {
+    // Check if order can be cancelled (allowed until it reaches Out for Delivery)
+    const cancellableStatuses = ['pending', 'processing', 'received', 'processed', 'packed', 'shipped'];
+    const normalizedStatus = String(order.status || '').toLowerCase();
+    if (!cancellableStatuses.includes(normalizedStatus)) {
       return res.status(400).json({ 
-        message: `Cannot cancel order with status "${order.status}". Only orders that haven't been shipped can be cancelled.` 
+        message: `Cannot cancel order with status "${order.status}". Cancellation is allowed only before "Out for Delivery".` 
       });
     }
 

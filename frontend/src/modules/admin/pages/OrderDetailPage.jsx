@@ -207,9 +207,10 @@ const OrderDetailPage = () => {
     };
 
     // Check if order can be cancelled
-    const cancellableStatuses = ['pending', 'Processing', 'Received', 'Processed'];
-    const canCancel = cancellableStatuses.includes(status) && status !== 'Cancelled';
-    const isCancelledOrder = status === 'Cancelled';
+    const cancellableStatuses = ['pending', 'processing', 'received', 'processed', 'packed', 'shipped'];
+    const normalizedStatus = String(status || '').toLowerCase();
+    const canCancel = cancellableStatuses.includes(normalizedStatus) && normalizedStatus !== 'cancelled';
+    const isCancelledOrder = normalizedStatus === 'cancelled';
 
     const dummyItems = [
         {
