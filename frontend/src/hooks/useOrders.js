@@ -179,6 +179,8 @@ export const useCancelOrder = () => {
         onSuccess: (data, variables) => {
             queryClient.invalidateQueries({ queryKey: ['orders'] });
             queryClient.invalidateQueries({ queryKey: ['all-orders'] });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['product'] });
             const refundMsg = data.refund?.initiated 
                 ? ` Refund of ₹${data.refund.amount} initiated.` 
                 : '';
