@@ -134,6 +134,9 @@ const OrderDetailPage = () => {
     const cancellableStatuses = ['pending', 'Processing', 'Received', 'Processed'];
     const canCancel = cancellableStatuses.includes(order.status) && order.status !== 'Cancelled';
     const isCancelled = order.status === 'Cancelled';
+    const hasRefundRequested = isCancelled
+        && order.paymentMethod !== 'cod'
+        && ['pending', 'processed', 'failed'].includes(order.refundStatus);
 
     // Handle cancel order
     const handleCancelOrder = () => {
@@ -434,8 +437,33 @@ const OrderDetailPage = () => {
                                     </div>
                                 </div>
                                 {getRefundStatusBadge()}
-                                {order.refundAmount && (
-                                    <p className="text-xs text-gray-500 text-center">Refund amount: ₹{order.refundAmount}</p>
+                                {hasRefundRequested && (
+                                    <div className="bg-white border border-gray-200 rounded-xl p-3 space-y-2">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Refund Details</p>
+                                        <div className="text-xs text-slate-600 space-y-1">
+                                            {typeof order.refundAmount === 'number' && (
+                                                <p><span className="font-bold">Amount:</span> Rs. {order.refundAmount}</p>
+                                            )}
+                                            {order.refundId && (
+                                                <p><span className="font-bold">Refund ID:</span> <span className="font-mono">{order.refundId}</span></p>
+                                            )}
+                                            {order.cancelledAt && (
+                                                <p>
+                                                    <span className="font-bold">Requested On:</span>{' '}
+                                                    {new Date(order.cancelledAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                </p>
+                                            )}
+                                            {order.refundProcessedAt && (
+                                                <p>
+                                                    <span className="font-bold">Processed On:</span>{' '}
+                                                    {new Date(order.refundProcessedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                </p>
+                                            )}
+                                            {order.refundFailureReason && (
+                                                <p><span className="font-bold">Failure Reason:</span> {order.refundFailureReason}</p>
+                                            )}
+                                        </div>
+                                    </div>
                                 )}
                             </div>
                         )}

@@ -15,11 +15,10 @@ const OrdersPage = () => {
 
     const totalPages = Math.max(1, Math.ceil(orders.length / ordersPerPage));
     const getRefundInfo = (order) => {
-        if (order?.status !== 'Cancelled') return null;
+        const isCancelled = String(order?.status || '').toLowerCase() === 'cancelled';
+        if (!isCancelled) return null;
 
-        if (order?.paymentMethod === 'cod' || order?.refundStatus === 'not_applicable') {
-            return { label: 'No Refund (COD)', className: 'bg-gray-50 text-gray-500 border-gray-100' };
-        }
+        if (order?.paymentMethod === 'cod' || order?.refundStatus === 'not_applicable') return null;
 
         if (order?.refundStatus === 'processed') {
             return { label: 'Refund Completed', className: 'bg-green-50 text-green-700 border-green-200' };
