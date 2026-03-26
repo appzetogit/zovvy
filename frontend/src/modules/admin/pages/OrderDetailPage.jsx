@@ -115,6 +115,11 @@ const OrderDetailPage = () => {
             });
             if (res.ok) {
                 setStatus(newStatus);
+                queryClient.invalidateQueries({ queryKey: ['order', id] });
+                queryClient.invalidateQueries({ queryKey: ['orders'] });
+                queryClient.invalidateQueries({ queryKey: ['all-orders'] });
+                queryClient.invalidateQueries({ queryKey: ['products'] });
+                queryClient.invalidateQueries({ queryKey: ['product'] });
                 toast.success(`Order status updated to ${newStatus}`);
             } else {
                 toast.error('Failed to update status');
@@ -182,7 +187,10 @@ const OrderDetailPage = () => {
                 const data = await res.json();
                 setStatus('Cancelled');
                 queryClient.invalidateQueries({ queryKey: ['order', id] });
+                queryClient.invalidateQueries({ queryKey: ['orders'] });
                 queryClient.invalidateQueries({ queryKey: ['all-orders'] });
+                queryClient.invalidateQueries({ queryKey: ['products'] });
+                queryClient.invalidateQueries({ queryKey: ['product'] });
                 const refundMsg = data.refund?.initiated 
                     ? ` Refund of ₹${data.refund.amount} initiated.` 
                     : '';

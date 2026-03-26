@@ -232,6 +232,8 @@ export const updateOrder = asyncHandler(async (req, res) => {
       return res.status(404).json({ message: 'Order not found' });
     }
 
+    const oldStatus = order.status;
+
     // Update fields if provided
     if (status) order.status = status;
     if (deliveryStatus) order.deliveryStatus = deliveryStatus;
@@ -241,10 +243,7 @@ export const updateOrder = asyncHandler(async (req, res) => {
     if (trackingId) order.trackingId = trackingId;
 
     // Add to status history if status changed
-    if (status && status !== order.status) {
-      const oldStatus = order.status;
-      order.status = status;
-
+    if (status && status !== oldStatus) {
       // Restock if status changed to Cancelled
       if (status === 'Cancelled' && oldStatus !== 'Cancelled') {
           if (order.items && order.items.length > 0) {

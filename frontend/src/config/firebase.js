@@ -19,9 +19,14 @@ let app;
 let messaging;
 
 try {
-  app = initializeApp(firebaseConfig);
-  messaging = getMessaging(app);
-  console.log('Firebase initialized successfully');
+  // Check if config exists before attempting initialization
+  if (firebaseConfig.apiKey) {
+    app = initializeApp(firebaseConfig);
+    messaging = getMessaging(app);
+    console.log('Firebase initialized successfully');
+  } else {
+    console.warn('Firebase Messaging: Missing configuration. Check your .env file.');
+  }
 } catch (error) {
   console.error('Firebase initialization error:', error);
 }
@@ -38,7 +43,12 @@ export const requestNotificationPermission = async () => {
       if ('serviceWorker' in navigator) {
         const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
         console.log('Service Worker registered:', registration);
-        
+
+        if (!messaging) {
+          console.warn('Firebase Messaging: Unable to get token because messaging is not initialized.');
+          return null;
+        }
+
         // Get FCM token
         const token = await getToken(messaging, {
           vapidKey: VAPID_KEY,
@@ -65,6 +75,10 @@ export const requestNotificationPermission = async () => {
 
 // Listen for foreground messages (returns unsubscribe function)
 export const onMessageListener = (callback) => {
+  if (!messaging) {
+    console.warn('Firebase Messaging: onMessageListener called, but messaging is not initialized.');
+    return () => {};
+  }
   return onMessage(messaging, (payload) => {
     console.log('Message received in foreground:', payload);
     callback(payload);
