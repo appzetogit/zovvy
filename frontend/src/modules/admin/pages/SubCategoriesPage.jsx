@@ -19,6 +19,12 @@ import { useCategories } from '../../../hooks/useProducts';
 import { AdminTable, AdminTableHeader, AdminTableHead, AdminTableBody, AdminTableRow, AdminTableCell } from '../components/AdminTable';
 import Pagination from '../components/Pagination';
 
+const getEntityId = (value) => {
+    if (!value) return '';
+    if (typeof value === 'string') return value;
+    return value._id || value.id || '';
+};
+
 const SubCategoriesPage = () => {
     const { data: globalParents = [] } = useCategories();
     const queryClient = useQueryClient();
@@ -87,15 +93,16 @@ const SubCategoriesPage = () => {
 
         try {
             const method = isEdit ? 'PUT' : 'POST';
+            const editingSubId = getEntityId(editingSub);
             const url = isEdit
-                ? `${API_BASE_URL}/subcategories/${editingSub.id}`
+                ? `${API_BASE_URL}/subcategories/${editingSubId}`
                 : `${API_BASE_URL}/subcategories`;
 
             let payload;
             if (isEdit) {
                 payload = {
                     ...editingSub,
-                    parent: editingSub.parent.id || editingSub.parent,
+                    parent: getEntityId(editingSub.parent),
                     showInShopByCategory: editingSub.showInShopByCategory
                 };
             } else {
@@ -108,6 +115,7 @@ const SubCategoriesPage = () => {
             }
 
             // Validation
+            if (isEdit && !editingSubId) throw new Error("Sub-category ID is missing");
             if (!payload.parent) throw new Error("Parent category is required");
 
             const res = await fetch(url, {
@@ -123,7 +131,7 @@ const SubCategoriesPage = () => {
                 refreshGlobalCategories(); // Refresh global context
                 setShowAddModal(false);
                 setEditingSub(null);
-                setNewItem({ name: '', parentId: '', status: 'Active' });
+                setNewItem({ name: '', parentId: '', status: 'Active', showInShopByCategory: true });
             } else {
                 toast.error(data.message || 'Operation failed', { id: toastId });
             }
@@ -180,7 +188,7 @@ const SubCategoriesPage = () => {
 
             return matchesSearch && matchesParent && matchesStatus;
         });
-    }, [subCategories, searchTerm, parentFilter, globalParents]);
+    }, [subCategories, searchTerm, parentFilter, statusFilter, globalParents]);
 
     const groupedSubs = useMemo(() => {
         const groups = {};
@@ -335,7 +343,7 @@ const SubCategoriesPage = () => {
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            setNewItem({ ...newItem, parentId: category.id });
+                                            setNewItem({ ...newItem, parentId: getEntityId(category) });
                                             setShowAddModal(true);
                                         }}
                                         className="bg-white text-primary border border-gray-200 hover:bg-gray-50 hover:text-primaryDeep px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all"
@@ -415,7 +423,7 @@ const SubCategoriesPage = () => {
                             <div>
                                 <h2 className="text-sm font-black text-footerBg uppercase tracking-tight">{editingSub ? 'Edit Level' : 'New Level'}</h2>
                                 <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">
-                                    Parent: {globalParents.find(p => p.id === (editingSub ? (editingSub.parent.id || editingSub.parent) : newItem.parentId))?.name || 'Select Parent'}
+                                    Parent: {globalParents.find(p => getEntityId(p) === (editingSub ? getEntityId(editingSub.parent) : newItem.parentId))?.name || 'Select Parent'}
                                 </p>
                             </div>
                             <button onClick={() => { setShowAddModal(false); setEditingSub(null); }} className="p-1">
@@ -427,12 +435,12 @@ const SubCategoriesPage = () => {
                                 <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-1 block">Parent</label>
                                 <select
                                     required
-                                    value={editingSub ? (editingSub.parent._id || editingSub.parent.id || editingSub.parent) : newItem.parentId}
+                                    value={editingSub ? getEntityId(editingSub.parent) : newItem.parentId}
                                     onChange={(e) => editingSub ? setEditingSub({ ...editingSub, parent: e.target.value }) : setNewItem({ ...newItem, parentId: e.target.value })}
                                     className="w-full bg-gray-50 border border-gray-100 rounded-lg px-3 py-2 text-xs font-bold text-footerBg outline-none"
                                 >
                                     <option value="">Select Parent Category</option>
-                                    {globalParents.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                    {globalParents.map(p => <option key={getEntityId(p)} value={getEntityId(p)}>{p.name}</option>)}
                                 </select>
                             </div>
 

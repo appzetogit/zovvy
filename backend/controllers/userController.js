@@ -10,7 +10,18 @@ const normalizePhone = (phone = '') => String(phone).replace(/\D/g, '').slice(-1
 
 const getDefaultAdminEmail = () => process.env.ADMIN_EMAIL || 'admin@farmlyf.com';
 const getDefaultAdminName = () => process.env.ADMIN_NAME || 'Super Admin';
-const getDefaultAdminPassword = () => process.env.ADMIN_PASSWORD || 'admin';
+const getDefaultAdminPassword = () => process.env.ADMIN_PASSWORD || '123456';
+const getDefaultAdminAliases = () => {
+  const aliases = [
+    process.env.ADMIN_USERNAME,
+    'admin',
+    getDefaultAdminEmail()
+  ]
+    .filter(Boolean)
+    .map((value) => String(value).trim().toLowerCase());
+
+  return [...new Set(aliases)];
+};
 
 const escapeRegExp = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const fullNameRegex = /^[A-Za-z ]+$/;
@@ -101,14 +112,20 @@ export const registerUser = async (req, res) => {
 // @route   POST /api/users/login
 // @access  Public
 export const loginUser = async (req, res) => {
-  const submittedEmail = String(req.body?.email || '').trim().toLowerCase();
+  const submittedIdentifier = String(req.body?.email || req.body?.username || '').trim().toLowerCase();
   const submittedPassword = String(req.body?.password || '').trim();
   const defaultAdminEmail = getDefaultAdminEmail().trim().toLowerCase();
   const defaultAdminPassword = getDefaultAdminPassword().trim();
   const defaultAdminName = getDefaultAdminName();
+  const defaultAdminAliases = getDefaultAdminAliases();
 
   try {
-    const admin = await Admin.findOne({ email: submittedEmail });
+    const admin = await Admin.findOne({
+      $or: [
+        { email: submittedIdentifier },
+        ...(submittedIdentifier === 'admin' ? [{ email: defaultAdminEmail }] : [])
+      ]
+    });
     if (admin && (await bcrypt.compare(submittedPassword, admin.password))) {
       const token = generateToken('admin_01');
       res.cookie('jwt', token, getJwtCookieOptions());
@@ -122,7 +139,7 @@ export const loginUser = async (req, res) => {
     }
 
     // Keep login aligned with the fallback admin behavior used in profile/middleware.
-    if (submittedEmail === defaultAdminEmail && submittedPassword === defaultAdminPassword) {
+    if (defaultAdminAliases.includes(submittedIdentifier) && submittedPassword === defaultAdminPassword) {
       const token = generateToken('admin_01');
       res.cookie('jwt', token, getJwtCookieOptions());
       return res.json({
@@ -134,7 +151,7 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email: submittedEmail });
+    const user = await User.findOne({ email: submittedIdentifier });
     
     if (user && user.isBanned) {
         return res.status(401).json({ message: 'This account has been restricted. Please contact support.' });

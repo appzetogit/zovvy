@@ -34,7 +34,7 @@ const ProtectedRoute = ({ children }) => {
 
     // Check if user has admin role
     // Admin user is identified by email or explicit role field
-    const isAdmin = user.role === 'admin' || user.email === 'biotatwaindia@gmail.com';
+    const isAdmin = String(user.role || '').toLowerCase() === 'admin';
 
     // Redirect to home if user is authenticated but not an admin
     if (!isAdmin) {
