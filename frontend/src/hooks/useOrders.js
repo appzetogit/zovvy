@@ -10,11 +10,13 @@ export const useOrders = (userId) => {
     return useQuery({
         queryKey: ['orders', userId],
         queryFn: async () => {
-            const res = await fetch(`${API_URL}/orders`, { 
+            const res = await fetch(`${API_URL}/orders/user/${userId}`, { 
                 headers: getAuthHeaders()
             });
-            const allOrders = await res.json();
-            return allOrders.filter(o => o.userId === userId);
+            if (!res.ok) {
+                throw new Error('Failed to fetch user orders');
+            }
+            return res.json();
         },
         enabled: !!userId
     });

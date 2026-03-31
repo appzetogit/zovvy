@@ -14,6 +14,23 @@ const OrdersPage = () => {
     const ordersPerPage = 6;
 
     const totalPages = Math.max(1, Math.ceil(orders.length / ordersPerPage));
+    const getRefundInfo = (order) => {
+        const isCancelled = String(order?.status || '').toLowerCase() === 'cancelled';
+        if (!isCancelled) return null;
+
+        if (order?.paymentMethod === 'cod' || order?.refundStatus === 'not_applicable') return null;
+
+        if (order?.refundStatus === 'processed') {
+            return { label: 'Refund Completed', className: 'bg-green-50 text-green-700 border-green-200' };
+        }
+
+        if (order?.refundStatus === 'failed') {
+            return { label: 'Refund Failed', className: 'bg-red-50 text-red-700 border-red-200' };
+        }
+
+        return { label: 'Refund Processing', className: 'bg-amber-50 text-amber-700 border-amber-200' };
+    };
+
     const paginatedOrders = useMemo(() => {
         const start = (currentPage - 1) * ordersPerPage;
         const end = start + ordersPerPage;
@@ -54,6 +71,7 @@ const OrdersPage = () => {
                         const firstItem = order.items?.[0];
                         const extraItems = Math.max((order.items?.length || 0) - 1, 0);
                         const orderId = order.id || order._id;
+                        const refundInfo = getRefundInfo(order);
 
                         return (
                             <motion.div
@@ -83,6 +101,21 @@ const OrdersPage = () => {
                                                 <p className="text-base md:text-2xl font-black text-footerBg leading-none">Rs. {order.amount}</p>
                                             </div>
                                         </div>
+                                        {refundInfo && (
+                                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-xl border border-gray-100 bg-white p-2.5">
+                                                <span className={`inline-flex w-fit items-center border px-2 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest ${refundInfo.className}`}>
+                                                    {refundInfo.label}
+                                                </span>
+                                                <div className="text-[10px] text-slate-500">
+                                                    {typeof order.refundAmount === 'number' && (
+                                                        <span className="font-bold mr-2">Amount: Rs. {order.refundAmount}</span>
+                                                    )}
+                                                    {order.refundId && (
+                                                        <span className="font-mono text-[9px]">ID: {order.refundId}</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
 
                                         <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/70 p-2.5">
                                             <div className="h-12 w-12 rounded-lg bg-white border border-slate-100 overflow-hidden shrink-0">

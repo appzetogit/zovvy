@@ -13,9 +13,68 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET || 'placeholder_secret',
 });
 
+const normalizeRefundStatus = (status) => {
+  if (!status) return 'pending';
+  const normalized = String(status).toLowerCase();
+  if (normalized === 'processed') return 'processed';
+  if (normalized === 'failed') return 'failed';
+  return 'pending';
+};
+
+const syncRefundDetails = async (orders) => {
+  const list = Array.isArray(orders) ? orders : [orders];
+  const refundableOrders = list.filter(
+    (order) => order?.refundId
+      && order?.razorpayPaymentId
+      && String(order?.refundStatus || '').toLowerCase() === 'pending'
+  );
+
+  if (!refundableOrders.length) return;
+
+  await Promise.all(refundableOrders.map(async (order) => {
+    try {
+      const refund = await razorpay.payments.fetchRefund(order.razorpayPaymentId, order.refundId);
+      const nextStatus = normalizeRefundStatus(refund?.status);
+      const nextAmount = typeof refund?.amount === 'number' ? refund.amount / 100 : order.refundAmount;
+      const nextFailureReason = refund?.error_description || null;
+      const nextProcessedAt = nextStatus === 'processed' && refund?.created_at
+        ? new Date(refund.created_at * 1000)
+        : order.refundProcessedAt;
+
+      const hasChanged = (
+        order.refundStatus !== nextStatus
+        || order.refundAmount !== nextAmount
+        || (order.refundFailureReason || null) !== nextFailureReason
+      );
+
+      if (!hasChanged) return;
+
+      order.refundStatus = nextStatus;
+      order.refundAmount = nextAmount;
+      order.refundCurrency = refund?.currency || order.refundCurrency || 'INR';
+      order.refundFailureReason = nextFailureReason;
+      order.refundProcessedAt = nextProcessedAt;
+
+      if (!order.statusHistory) {
+        order.statusHistory = [];
+      }
+      order.statusHistory.push({
+        status: order.status,
+        timestamp: new Date(),
+        info: `Refund status updated to ${nextStatus}${nextFailureReason ? ` (${nextFailureReason})` : ''}`
+      });
+
+      await order.save();
+    } catch (error) {
+      console.error(`Failed to sync refund for order ${order.id}:`, error.message);
+    }
+  }));
+};
+
 export const getOrders = async (req, res) => {
   try {
     const orders = await Order.find().sort({ createdAt: -1 });
+    await syncRefundDetails(orders);
     res.json(orders);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -86,11 +145,12 @@ export const cancelOrder = asyncHandler(async (req, res) => {
       return res.status(404).json({ message: 'Order not found' });
     }
 
-    // Check if order can be cancelled (only pending/processing orders)
-    const cancellableStatuses = ['pending', 'Processing', 'Received', 'Processed'];
-    if (!cancellableStatuses.includes(order.status)) {
+    // Check if order can be cancelled (allowed until it reaches Out for Delivery)
+    const cancellableStatuses = ['pending', 'processing', 'received', 'processed', 'packed', 'shipped'];
+    const normalizedStatus = String(order.status || '').toLowerCase();
+    if (!cancellableStatuses.includes(normalizedStatus)) {
       return res.status(400).json({ 
-        message: `Cannot cancel order with status "${order.status}". Only orders that haven't been shipped can be cancelled.` 
+        message: `Cannot cancel order with status "${order.status}". Cancellation is allowed only before "Out for Delivery".` 
       });
     }
 
@@ -130,9 +190,9 @@ export const cancelOrder = asyncHandler(async (req, res) => {
         });
 
         refundId = refund.id;
-        refundStatus = 'pending'; // Refund initiated, pending processing
+        refundStatus = normalizeRefundStatus(refund?.status);
         refundInitiated = true;
-        console.log(`Razorpay refund initiated: ${refund.id} for ₹${order.amount}`);
+        console.log(`Razorpay refund initiated: ${refund.id} for Rs.${order.amount}`);
       } catch (refundError) {
         console.error('Razorpay refund failed:', refundError.message);
         refundStatus = 'failed';
@@ -149,6 +209,9 @@ export const cancelOrder = asyncHandler(async (req, res) => {
     order.refundId = refundId;
     order.refundStatus = refundStatus;
     order.refundAmount = refundInitiated ? order.amount : null;
+    order.refundCurrency = 'INR';
+    order.refundProcessedAt = refundStatus === 'processed' ? new Date() : null;
+    order.refundFailureReason = refundStatus === 'failed' ? 'Refund initiation failed' : null;
 
     // 4. Decrement Referral Stats if a coupon/code was used
     if (order.appliedCoupon) {
@@ -208,6 +271,7 @@ export const getOrdersByUser = asyncHandler(async (req, res) => {
   const { userId } = req.params;
   try {
     const orders = await Order.find({ userId }).sort({ createdAt: -1 });
+    await syncRefundDetails(orders);
     res.json(orders);
   } catch (error) {
     console.error('Get User Orders Error:', error.message);
