@@ -13,7 +13,7 @@ import SubCategory from './models/SubCategory.js';
 dotenv.config();
 
 const DEFAULT_ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@farmlyf.com';
-const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
+const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '123456';
 const DEFAULT_ADMIN_NAME = process.env.ADMIN_NAME || 'Admin User';
 
 mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/farmlyf')

@@ -1,4 +1,5 @@
 import SubCategory from '../models/SubCategory.js';
+import mongoose from 'mongoose';
 
 import Product from '../models/Product.js';
 
@@ -49,6 +50,10 @@ export const createSubCategory = async (req, res) => {
 // Update sub-category
 export const updateSubCategory = async (req, res) => {
     try {
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ message: 'Invalid sub-category ID' });
+        }
+
         const { name, slug, parent, status, showInShopByCategory, image, description } = req.body;
         const sub = await SubCategory.findById(req.params.id);
 
@@ -74,6 +79,10 @@ export const updateSubCategory = async (req, res) => {
 // Delete sub-category
 export const deleteSubCategory = async (req, res) => {
     try {
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ message: 'Invalid sub-category ID' });
+        }
+
         const sub = await SubCategory.findById(req.params.id);
         if (sub) {
             await sub.deleteOne();

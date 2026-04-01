@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import Admin from '../models/Admin.js';
 
-const DEFAULT_ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'biotatwaindia@gmail.com';
+const DEFAULT_ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@farmlyf.com';
 const DEFAULT_ADMIN_NAME = process.env.ADMIN_NAME || 'Super Admin';
 
 export const protect = async (req, res, next) => {

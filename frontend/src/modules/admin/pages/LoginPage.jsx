@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, Eye, EyeOff, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Lock, User, Eye, EyeOff, ShieldCheck, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import logo from '../../../assets/zovvy-logo.png';
 
@@ -9,7 +9,7 @@ const LoginPage = () => {
     const { login } = useAuth();
     const navigate = useNavigate();
 
-    const [email, setEmail] = useState('');
+    const [identifier, setIdentifier] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
@@ -21,12 +21,12 @@ const LoginPage = () => {
         setIsSubmitting(true);
 
         try {
-            const res = await login(email, password);
+            const res = await login(identifier, password);
             if (res.success) {
                 // Double check if the logged in user is actually an admin
                 // Note: AuthContext should ideally handle this storage update before returning
                 const user = JSON.parse(localStorage.getItem('farmlyf_current_user'));
-                if (user && user.role === 'admin') {
+                if (user && String(user.role || '').toLowerCase() === 'admin') {
                     navigate('/admin/dashboard');
                 } else {
                     setError('Unauthorized Access: Administrative credentials required.');
@@ -86,17 +86,17 @@ const LoginPage = () => {
 
                     <form onSubmit={handleSubmit} autoComplete="off" className="space-y-6">
                         <div className="space-y-2">
-                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Admin Email</label>
+                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Admin Username</label>
                             <div className="relative group">
-                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-primary transition-colors" size={18} />
+                                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-primary transition-colors" size={18} />
                                 <input
-                                    type="email"
-                                    name="admin_login_email"
+                                    type="text"
+                                    name="admin_login_identifier"
                                     autoComplete="off"
                                     required
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="Enter admin email"
+                                    value={identifier}
+                                    onChange={(e) => setIdentifier(e.target.value)}
+                                    placeholder="Enter admin username"
                                     className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold text-white outline-none focus:bg-white/10 focus:border-primary transition-all placeholder:text-gray-600"
                                 />
                             </div>
