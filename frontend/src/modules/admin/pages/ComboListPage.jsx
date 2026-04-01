@@ -196,14 +196,13 @@ const ComboListPage = () => {
                     <AdminTable className="min-w-[800px]">
                         <AdminTableHeader>
                             <AdminTableHead className="min-w-[250px]">Category Identity</AdminTableHead>
-                            <AdminTableHead className="min-w-[300px]">Description & Usage</AdminTableHead>
                             <AdminTableHead className="min-w-[150px]">Visibility Status</AdminTableHead>
                             <AdminTableHead className="text-right min-w-[120px]">Management</AdminTableHead>
                         </AdminTableHeader>
                         <AdminTableBody>
                             {filteredCombos.length === 0 ? (
                                 <tr>
-                                    <td colSpan="4" className="px-6 py-20 text-center">
+                                    <td colSpan="3" className="px-6 py-20 text-center">
                                         <div className="flex flex-col items-center">
                                             <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-200 mb-4 border border-dashed border-gray-200">
                                                 <Boxes size={32} />
@@ -228,9 +227,6 @@ const ComboListPage = () => {
                                                     <p className="font-bold text-sm text-footerBg group-hover:text-primary transition-colors">{combo.name}</p>
                                                 </div>
                                             </div>
-                                        </AdminTableCell>
-                                        <AdminTableCell>
-                                            <p className="text-xs text-gray-500 leading-relaxed max-w-sm">{combo.description || "Premium collection tailored for special requirements and bulk value."}</p>
                                         </AdminTableCell>
                                         <AdminTableCell>
                                             <button
