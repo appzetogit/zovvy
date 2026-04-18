@@ -27,6 +27,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import Pagination from '../components/Pagination';
 import toast from 'react-hot-toast';
 import { AdminTable, AdminTableHeader, AdminTableHead, AdminTableBody, AdminTableRow, AdminTableCell } from '../components/AdminTable';
+import { getVariantDisplaySku, productMatchesSkuSearch } from '../../../utils/sku';
 
 
 const ProductListPage = () => {
@@ -131,6 +132,7 @@ const ProductListPage = () => {
                     !normalizedSearchTerm ||
                     product.name?.toLowerCase().includes(normalizedSearchTerm) ||
                     product.brand?.toLowerCase().includes(normalizedSearchTerm) ||
+                    productMatchesSkuSearch(product, normalizedSearchTerm) ||
                     String(product._id || '').toLowerCase().includes(normalizedSearchTerm) ||
                     (typeof product.category === 'string' ? product.category : product.category?.name)?.toLowerCase().includes(normalizedSearchTerm) ||
                     product.subcategory?.name?.toLowerCase().includes(normalizedSearchTerm);
@@ -148,7 +150,8 @@ const ProductListPage = () => {
         return products
             .filter(p =>
                 p.name?.toLowerCase().includes(normalizedSearchTerm) ||
-                p.brand?.toLowerCase().includes(normalizedSearchTerm)
+                p.brand?.toLowerCase().includes(normalizedSearchTerm) ||
+                productMatchesSkuSearch(p, normalizedSearchTerm)
             )
             .slice(0, 6);
     }, [products, normalizedSearchTerm]);
@@ -171,8 +174,6 @@ const ProductListPage = () => {
         if (hasOutOfStock) return { label: 'Partially In Stock', color: 'text-amber-600 bg-amber-50 border-amber-100' };
         return { label: 'In Stock', color: 'text-emerald-600 bg-emerald-50 border-emerald-100' };
     };
-
-
 
     return (
         <div className="space-y-8">
@@ -233,7 +234,7 @@ const ProductListPage = () => {
                     <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
                         type="text"
-                        placeholder="Search products, brands..."
+                        placeholder="Search products, brands, SKUs..."
                         value={searchTerm}
                         onChange={(e) => {
                             setSearchTerm(e.target.value);
@@ -428,7 +429,7 @@ const ProductListPage = () => {
                                                                 {product.variants?.map((variant, idx) => (
                                                                     <tr key={variant.id || idx} className="hover:bg-gray-50/50">
                                                                         <td className="px-4 py-2 font-mono text-xs font-bold text-gray-600">
-                                                                            {product.brand?.substring(0, 3).toUpperCase()}-{variant.weight || 'VAR'}-{idx + 1}
+                                                                            {getVariantDisplaySku(product, variant, idx)}
                                                                         </td>
                                                                         <td className="px-4 py-2 text-sm text-gray-700">{variant.weight}</td>
                                                                         <td className="px-4 py-2">

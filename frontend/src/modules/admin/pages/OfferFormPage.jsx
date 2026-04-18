@@ -17,6 +17,7 @@ import { useProducts, useUploadImage } from '../../../hooks/useProducts';
 import { useOffer, useAddOffer, useUpdateOffer } from '../../../hooks/useOffers';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { getPrimaryProductSku, productMatchesSkuSearch } from '../../../utils/sku';
 
 const OfferFormPage = () => {
     const { id } = useParams();
@@ -99,7 +100,8 @@ const OfferFormPage = () => {
         if (!productSearch.trim()) return products.slice(0, 50);
         return products.filter(p => 
             p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
-            p.id?.toLowerCase().includes(productSearch.toLowerCase())
+            p.id?.toLowerCase().includes(productSearch.toLowerCase()) ||
+            productMatchesSkuSearch(p, productSearch)
         );
     }, [products, productSearch]);
 
@@ -252,7 +254,7 @@ const OfferFormPage = () => {
                                                 {p.name}
                                             </p>
                                             <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest truncate">
-                                                {p.variants?.[0]?.weight || 'Standard'} • ₹{p.variants?.[0]?.price || 0}
+                                                {getPrimaryProductSku(p)} • {p.variants?.[0]?.weight || 'Standard'} • ₹{p.variants?.[0]?.price || 0}
                                             </p>
                                         </div>
                                     </div>

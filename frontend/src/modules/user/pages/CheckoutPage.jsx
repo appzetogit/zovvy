@@ -230,6 +230,9 @@ const CheckoutPage = () => {
         length: null,
         breadth: null,
         height: null,
+        availableCourierCount: null,
+        freeShippingApplied: false,
+        currency: 'INR',
         error: ''
     });
 
@@ -297,6 +300,9 @@ const CheckoutPage = () => {
                 length: null,
                 breadth: null,
                 height: null,
+                availableCourierCount: null,
+                freeShippingApplied: false,
+                currency: 'INR',
                 error: ''
             }));
             return;
@@ -338,6 +344,9 @@ const CheckoutPage = () => {
                         length: data.request?.length || null,
                         breadth: data.request?.breadth || null,
                         height: data.request?.height || null,
+                        availableCourierCount: data.availableCourierCount ?? null,
+                        freeShippingApplied: Boolean(data.freeShippingApplied),
+                        currency: data.currency || 'INR',
                         error: ''
                     });
                 }
@@ -347,6 +356,7 @@ const CheckoutPage = () => {
                         ...prev,
                         loading: false,
                         source: prev.source || 'fallback',
+                        currency: prev.currency || 'INR',
                         error: error.message || 'Unable to fetch shipping quote'
                     }));
                 }
@@ -999,14 +1009,34 @@ const CheckoutPage = () => {
                                         </div>
                                     </div>
                                     {(shippingQuote.courierName || shippingQuote.error || shippingQuote.source) && (
-                                        <div className="text-[9px] md:text-[11px] text-gray-400 mt-2">
+                                        <div className="mt-2 rounded-xl bg-gray-50 border border-gray-100 px-3 py-2.5 text-[10px] md:text-[11px] text-gray-500 space-y-1.5">
                                             {shippingQuote.loading && <span>Checking live shipping rates...</span>}
                                             {!shippingQuote.loading && shippingQuote.source === 'shiprocket' && (
-                                                <span>
-                                                    Live rate via {shippingQuote.courierName || 'Shiprocket'}
-                                                    {shippingQuote.estimatedDays ? ` | ETA ${shippingQuote.estimatedDays} day(s)` : ''}
-                                                    {shippingQuote.weight ? ` | ${shippingQuote.weight} kg` : ''}
-                                                </span>
+                                                <>
+                                                    <div className="font-semibold text-footerBg">
+                                                        Shiprocket response: {shippingQuote.courierName || 'Shiprocket'}
+                                                    </div>
+                                                    <div className="flex justify-between gap-4">
+                                                        <span>Delivery charge</span>
+                                                        <span className="font-semibold text-footerBg">
+                                                            {shippingQuote.freeShippingApplied ? 'FREE' : formatINR(shippingQuote.shippingCharge)}
+                                                        </span>
+                                                    </div>
+                                                    {(shippingQuote.estimatedDays || shippingQuote.weight) && (
+                                                        <div>
+                                                            {shippingQuote.estimatedDays ? `ETA ${shippingQuote.estimatedDays} day(s)` : 'ETA unavailable'}
+                                                            {shippingQuote.weight ? ` | ${shippingQuote.weight} kg` : ''}
+                                                        </div>
+                                                    )}
+                                                    {(shippingQuote.length || shippingQuote.breadth || shippingQuote.height) && (
+                                                        <div>
+                                                            Package: {shippingQuote.length || '-'} x {shippingQuote.breadth || '-'} x {shippingQuote.height || '-'} cm
+                                                        </div>
+                                                    )}
+                                                    {shippingQuote.availableCourierCount ? (
+                                                        <div>{shippingQuote.availableCourierCount} courier option(s) checked</div>
+                                                    ) : null}
+                                                </>
                                             )}
                                             {!shippingQuote.loading && shippingQuote.source !== 'shiprocket' && (
                                                 <span>

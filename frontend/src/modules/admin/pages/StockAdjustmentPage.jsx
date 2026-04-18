@@ -17,22 +17,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { AdminTable, AdminTableHeader, AdminTableHead, AdminTableBody, AdminTableRow, AdminTableCell } from '../components/AdminTable';
 import Pagination from '../components/Pagination';
-
-const getLegacyVariantSku = (product, variant, index = 0) => {
-    const brandCode = (product?.brand || 'SKU')
-        .replace(/[^a-zA-Z0-9]/g, '')
-        .slice(0, 3)
-        .toUpperCase() || 'SKU';
-    const sizeCode = (
-        variant?.quantity && variant?.unit
-            ? `${variant.quantity}${variant.unit}`
-            : variant?.weight || 'VAR'
-    )
-        .replace(/\s+/g, '')
-        .toUpperCase();
-
-    return `${brandCode}-${sizeCode}-${index + 1}`;
-};
+import { getVariantDisplaySku, productMatchesSkuSearch } from '../../../utils/sku';
 
 const StockAdjustmentPage = () => {
     const navigate = useNavigate();
@@ -48,11 +33,9 @@ const StockAdjustmentPage = () => {
     const itemsPerPage = 10;
 
     const getDisplaySku = (product, variant = null) => {
-        if (variant?.sku?.trim()) return variant.sku.trim();
-        if (product?.sku?.trim()) return product.sku.trim();
         if (variant) {
             const variantIndex = product?.variants?.findIndex((item) => (item.id || item._id) === (variant.id || variant._id)) ?? -1;
-            return getLegacyVariantSku(product, variant, variantIndex >= 0 ? variantIndex : 0);
+            return getVariantDisplaySku(product, variant, variantIndex >= 0 ? variantIndex : 0);
         }
         return product?.id || product?._id || '-';
     };
@@ -62,12 +45,9 @@ const StockAdjustmentPage = () => {
 
         return products.filter((p) => {
             const matchesName = p.name?.toLowerCase().includes(normalizedSearch);
-            const matchesProductSku = p.sku?.toLowerCase().includes(normalizedSearch);
-            const matchesVariantSku = p.variants?.some((variant) =>
-                variant?.sku?.toLowerCase().includes(normalizedSearch)
-            );
+            const matchesSku = productMatchesSkuSearch(p, normalizedSearch);
 
-            return matchesName || matchesProductSku || matchesVariantSku;
+            return matchesName || matchesSku;
         });
     }, [products, searchTerm]);
 

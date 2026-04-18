@@ -28,6 +28,7 @@ import toast from 'react-hot-toast';
 import { AdminTable, AdminTableHeader, AdminTableHead, AdminTableBody, AdminTableRow, AdminTableCell } from '../components/AdminTable';
 import InvoiceGenerator from '../components/InvoiceGenerator';
 import { useSetting } from '../../../hooks/useSettings';
+import { getOrderItemSku } from '../../../utils/sku';
 
 const API_URL = API_BASE_URL;
 
@@ -439,7 +440,7 @@ const OrderDetailPage = () => {
                                                 </div>
                                             </td>
                                             <td className="p-4">
-                                                <span className="font-bold text-xs text-footerBg uppercase">SKU-{item.id?.slice(-4).toUpperCase()}</span>
+                                                <span className="font-bold text-xs text-footerBg uppercase">{getOrderItemSku(item, idx)}</span>
                                             </td>
                                             <td className="p-4 text-center font-bold text-gray-600">
                                                 {qty}

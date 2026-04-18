@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import Pagination from '../components/Pagination';
 import { AdminTable, AdminTableHeader, AdminTableHead, AdminTableBody, AdminTableRow, AdminTableCell } from '../components/AdminTable';
 import { useDeleteProduct, useProducts, useComboCategories } from '../../../hooks/useProducts';
+import { getVariantDisplaySku, productMatchesSkuSearch } from '../../../utils/sku';
 
 const ComboProductsPage = () => {
     const navigate = useNavigate();
@@ -59,6 +60,7 @@ const ComboProductsPage = () => {
             const matchesSearch =
                 combo.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 combo.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                productMatchesSkuSearch(combo, searchTerm) ||
                 combo.subcategory?.toLowerCase().includes(searchTerm.toLowerCase());
 
             const matchesCategory = filterCategory === 'All' || combo.subcategory === filterCategory;
@@ -337,7 +339,7 @@ const ComboProductsPage = () => {
                                                                     {combo.variants?.map((variant, idx) => (
                                                                         <tr key={variant.id || idx} className="hover:bg-gray-50/50">
                                                                             <td className="px-4 py-2 font-mono text-xs font-bold text-gray-600">
-                                                                                {combo.brand?.substring(0, 3).toUpperCase() || 'FLF'}-{variant.weight || variant.name || 'VAR'}-{idx + 1}
+                                                                                {getVariantDisplaySku(combo, variant, idx)}
                                                                             </td>
                                                                             <td className="px-4 py-2 text-sm text-gray-700">{variant.weight || variant.name || 'Standard'}</td>
                                                                             <td className="px-4 py-2">

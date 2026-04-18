@@ -13,6 +13,7 @@ import {
 import { AdminTable, AdminTableHeader, AdminTableHead, AdminTableBody, AdminTableRow, AdminTableCell } from '../components/AdminTable';
 
 import { useProducts } from '../../../hooks/useProducts';
+import { getPrimaryProductSku, productMatchesSkuSearch } from '../../../utils/sku';
 
 const LowStockAlertsPage = () => {
     const navigate = useNavigate();
@@ -26,7 +27,7 @@ const LowStockAlertsPage = () => {
         }).map(p => ({
             id: p._id,
             name: p.name,
-            sku: p.sku,
+            sku: getPrimaryProductSku(p),
             category: p.category,
             image: p.image,
             stock: p.stock?.quantity || 0,
@@ -42,7 +43,8 @@ const LowStockAlertsPage = () => {
         return products.filter(p =>
             !normalizedSearchTerm ||
             p.name?.toLowerCase().includes(normalizedSearchTerm) ||
-            p.sku?.toLowerCase().includes(normalizedSearchTerm)
+            p.sku?.toLowerCase().includes(normalizedSearchTerm) ||
+            productMatchesSkuSearch(p, normalizedSearchTerm)
         );
     }, [products, normalizedSearchTerm]);
 

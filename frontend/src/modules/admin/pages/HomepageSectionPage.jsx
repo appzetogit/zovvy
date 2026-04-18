@@ -15,6 +15,7 @@ import toast from 'react-hot-toast';
 
 import { useFeaturedSectionByName, useUpdateFeaturedSection } from '../../../hooks/useContent';
 import { useProducts } from '../../../hooks/useProducts';
+import { getPrimaryProductSku, productMatchesSkuSearch } from '../../../utils/sku';
 
 const HomepageSectionPage = () => {
     const { sectionId } = useParams();
@@ -114,7 +115,9 @@ const HomepageSectionPage = () => {
 
     const filteredSuggestions = allProducts.filter(p => {
         const name = p.name || '';
-        const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearch =
+            name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            productMatchesSkuSearch(p, searchTerm);
         const notInSection = !products.some(sp => (sp._id || sp.id) === (p._id || p.id));
         return matchesSearch && notInSection;
     }).slice(0, 10);
@@ -186,7 +189,7 @@ const HomepageSectionPage = () => {
                                         <p className="font-bold text-gray-900 text-xs truncate uppercase tracking-tight">{product.name}</p>
                                         <div className="flex items-center gap-2 mt-0.5">
                                             <span className="text-[9px] font-black text-primary/60 uppercase tracking-widest">₹{product.price}</span>
-                                            <span className="text-[9px] text-gray-400 font-mono">#{product.sku || (product._id || product.id).slice(-6)}</span>
+                                            <span className="text-[9px] text-gray-400 font-mono">{getPrimaryProductSku(product)}</span>
                                         </div>
                                     </div>
                                     <Plus size={14} className="text-gray-300 group-hover:text-primary transition-colors" />
@@ -235,7 +238,7 @@ const HomepageSectionPage = () => {
                                                 </div>
                                                 <div>
                                                     <p className="font-medium text-gray-900 text-sm line-clamp-1">{product.name}</p>
-                                                    <p className="text-xs text-gray-500 font-mono">{product.sku || product._id || product.id}</p>
+                                                    <p className="text-xs text-gray-500 font-mono">{getPrimaryProductSku(product)}</p>
                                                 </div>
                                             </div>
                                         </AdminTableCell>
