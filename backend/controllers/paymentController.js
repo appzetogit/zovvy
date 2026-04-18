@@ -9,12 +9,16 @@ import shiprocketService from '../utils/shiprocketService.js';
 import { validateOrderStock, deductStock } from '../utils/stockUtils.js';
 import { sendAdminOrderNotification } from '../utils/notificationUtils.js';
 
-// Initialize Razorpay
-// Note: These will be undefined until the user adds them to .env
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || 'placeholder_id',
-  key_secret: process.env.RAZORPAY_KEY_SECRET || 'placeholder_secret',
-});
+const getRazorpayClient = () => {
+  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    return null;
+  }
+
+  return new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
+  });
+};
 
 
 const isNonEmpty = (value) => typeof value === 'string' && value.trim().length > 0;
@@ -57,11 +61,10 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
   }
 
   if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-      // In development, if keys are missing, we might want to throw a specific error or 
-      // return a mock response if the user just wants to see the UI.
-      // But for production safety, we should error.
-      // return res.status(400).json({ message: 'Razorpay keys not configured' });
+      return res.status(500).json({ message: 'Razorpay keys not configured on the server.' });
   }
+
+  const razorpay = getRazorpayClient();
 
   if (!orderData?.items?.length) {
     return res.status(400).json({ message: 'Cart is empty' });
@@ -80,7 +83,10 @@ export const createRazorpayOrder = asyncHandler(async (req, res) => {
 
   try {
     const order = await razorpay.orders.create(options);
-    res.json(order);
+    res.json({
+      ...order,
+      key: process.env.RAZORPAY_KEY_ID
+    });
   } catch (error) {
     console.error('Razorpay Order Creation Error:', error);
     res.status(500).json({ message: 'Failed to create Razorpay order', error: error.message });

@@ -7,11 +7,16 @@ import shiprocketService from '../utils/shiprocketService.js';
 import asyncHandler from 'express-async-handler';
 import mongoose from 'mongoose';
 
-// Initialize Razorpay for refunds
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || 'placeholder_id',
-  key_secret: process.env.RAZORPAY_KEY_SECRET || 'placeholder_secret',
-});
+const getRazorpayClient = () => {
+  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    return null;
+  }
+
+  return new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
+  });
+};
 
 const normalizeRefundStatus = (status) => {
   if (!status) return 'pending';
@@ -33,6 +38,9 @@ const syncRefundDetails = async (orders) => {
 
   await Promise.all(refundableOrders.map(async (order) => {
     try {
+      const razorpay = getRazorpayClient();
+      if (!razorpay) return;
+
       const refund = await razorpay.payments.fetchRefund(order.razorpayPaymentId, order.refundId);
       const nextStatus = normalizeRefundStatus(refund?.status);
       const nextAmount = typeof refund?.amount === 'number' ? refund.amount / 100 : order.refundAmount;

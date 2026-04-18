@@ -551,7 +551,7 @@ const CheckoutPage = () => {
                 const orderResponse = await placeOrderMutate({ userId: user?.id, orderData });
 
                 const options = {
-                    key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_placeholder', // User needs to provide this
+                    key: orderResponse.key,
                     amount: orderResponse.amount,
                     currency: orderResponse.currency,
                     name: 'FarmLyf',
@@ -593,6 +593,12 @@ const CheckoutPage = () => {
                         }
                     }
                 };
+
+                if (!options.key) {
+                    toast.error('Razorpay key is missing on the server.');
+                    setLoading(false);
+                    return;
+                }
 
                 const rzp = new window.Razorpay(options);
                 rzp.open();
