@@ -109,6 +109,9 @@ const CheckoutPage = () => {
                 id: variantData.id,
                 name: variantData.product.name,
                 weight: variantData.weight,
+                length: variantData.length,
+                breadth: variantData.breadth,
+                height: variantData.height,
                 price: variantData.price,
                 mrp: variantData.mrp,
                 image: variantData.product.image,
@@ -144,6 +147,9 @@ const CheckoutPage = () => {
         qty: Number(item.qty) || 0,
         price: Number(item.price) || 0,
         weight: item.weight,
+        length: item.length,
+        breadth: item.breadth,
+        height: item.height,
         sku: item.id
     }));
     const shippingItemsSignature = JSON.stringify(shippingItemsPayload);
@@ -221,6 +227,9 @@ const CheckoutPage = () => {
         courierId: null,
         estimatedDays: null,
         weight: null,
+        length: null,
+        breadth: null,
+        height: null,
         error: ''
     });
 
@@ -285,6 +294,9 @@ const CheckoutPage = () => {
                 courierId: null,
                 estimatedDays: null,
                 weight: null,
+                length: null,
+                breadth: null,
+                height: null,
                 error: ''
             }));
             return;
@@ -323,6 +335,9 @@ const CheckoutPage = () => {
                         courierId: data.courierId ? String(data.courierId) : null,
                         estimatedDays: data.estimatedDays || null,
                         weight: data.weight || null,
+                        length: data.request?.length || null,
+                        breadth: data.request?.breadth || null,
+                        height: data.request?.height || null,
                         error: ''
                     });
                 }
@@ -509,6 +524,7 @@ const CheckoutPage = () => {
         const orderData = {
             userId: user?.id,
             userName: normalizedFormData.fullName,
+            userEmail: userData?.email || user?.email || '',
             items: enrichedCart,
             shippingAddress: normalizedFormData,
             paymentMethod: paymentMethod,
@@ -525,7 +541,10 @@ const CheckoutPage = () => {
                 courierId: shippingQuote.courierId,
                 estimatedDays: shippingQuote.estimatedDays,
                 shippingCharge,
-                weight: shippingQuote.weight
+                weight: shippingQuote.weight,
+                length: shippingQuote.length,
+                breadth: shippingQuote.breadth,
+                height: shippingQuote.height
             },
             amount: total,
             currency: 'INR',

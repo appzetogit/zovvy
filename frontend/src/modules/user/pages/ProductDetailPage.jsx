@@ -367,6 +367,13 @@ const ProductDetailPage = () => {
             const weightValue = (isGroupProduct && selectedVariant)
                 ? (selectedVariant.weight || `${selectedVariant.quantity || ''} ${selectedVariant.unit || ''}`.trim())
                 : (product.weight || '');
+            const packageDimensions = (isGroupProduct && selectedVariant)
+                ? {
+                    length: selectedVariant.length,
+                    breadth: selectedVariant.breadth,
+                    height: selectedVariant.height
+                }
+                : {};
 
             const payload = {
                 deliveryPincode: normalizedPincode,
@@ -379,7 +386,10 @@ const ProductDetailPage = () => {
                         name: product.name,
                         qty: 1,
                         price: Number(currentPrice || 0),
-                        weight: weightValue
+                        weight: weightValue,
+                        length: packageDimensions.length,
+                        breadth: packageDimensions.breadth,
+                        height: packageDimensions.height
                     }
                 ]
             };

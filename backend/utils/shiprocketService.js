@@ -44,6 +44,82 @@ class ShiprocketService {
     return 0;
   }
 
+  buildCustomerEmail(source = {}, fallbackPrefix = 'customer') {
+    const directEmail = String(
+      source.userEmail ||
+      source.email ||
+      source.billing_email ||
+      source.pickup_email ||
+      source.shippingAddress?.email ||
+      ''
+    ).trim().toLowerCase();
+
+    if (directEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(directEmail)) {
+      return directEmail;
+    }
+
+    const normalizedPhone = String(
+      source.shippingAddress?.phone ||
+      source.billing_phone ||
+      source.userPhone ||
+      source.phone ||
+      ''
+    ).replace(/\D/g, '');
+
+    if (normalizedPhone) {
+      return `${fallbackPrefix}.${normalizedPhone}@orders.zovvy.invalid`;
+    }
+
+    const safeOrderId = String(source.id || source.order_id || 'guest')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '.')
+      .replace(/^\.+|\.+$/g, '') || 'guest';
+
+    return `${fallbackPrefix}.${safeOrderId}@orders.zovvy.invalid`;
+  }
+
+  parseDimensionToCm(value) {
+    if (value === null || value === undefined || value === '') return 0;
+    const numeric = Number(value);
+    return Number.isFinite(numeric) && numeric > 0 ? numeric : 0;
+  }
+
+  getPackageDimensions(items = []) {
+    const defaults = this.getDefaultDimensions();
+    let maxLength = 0;
+    let maxBreadth = 0;
+    let totalHeight = 0;
+    let hasAnyDimension = false;
+
+    items.forEach((item) => {
+      const units = Math.max(Number(item.qty) || 1, 1);
+      const length = this.parseDimensionToCm(item.length);
+      const breadth = this.parseDimensionToCm(item.breadth);
+      const height = this.parseDimensionToCm(item.height);
+
+      if (length > 0 && breadth > 0 && height > 0) {
+        hasAnyDimension = true;
+        maxLength = Math.max(maxLength, length);
+        maxBreadth = Math.max(maxBreadth, breadth);
+        totalHeight += height * units;
+      }
+    });
+
+    if (!hasAnyDimension) {
+      return {
+        length: defaults.length,
+        breadth: defaults.breadth,
+        height: defaults.height
+      };
+    }
+
+    return {
+      length: Number(maxLength.toFixed(2)),
+      breadth: Number(maxBreadth.toFixed(2)),
+      height: Number(Math.max(totalHeight, 0.1).toFixed(2))
+    };
+  }
+
   buildOrderItems(items = []) {
     let totalWeightKg = 0;
 
@@ -76,7 +152,11 @@ class ShiprocketService {
       };
     });
 
-    return { orderItems, totalWeightKg };
+    return {
+      orderItems,
+      totalWeightKg,
+      packageDimensions: this.getPackageDimensions(items)
+    };
   }
 
   getFallbackShipping(orderAmount = 0, reason = 'fallback_rate') {
@@ -207,7 +287,8 @@ class ShiprocketService {
     try {
       const headers = await this.getHeaders();
       const defaults = this.getDefaultDimensions();
-      const { orderItems, totalWeightKg } = this.buildOrderItems(orderData.items || []);
+      const sourceItems = orderData.items || orderData.order_items || [];
+      const { orderItems, totalWeightKg, packageDimensions } = this.buildOrderItems(sourceItems);
 
       // Transform our order data to Shiprocket format
       const shiprocketOrder = {
@@ -223,15 +304,15 @@ class ShiprocketService {
         billing_pincode: orderData.shippingAddress.pincode,
         billing_state: orderData.shippingAddress.state,
         billing_country: 'India',
-        billing_email: orderData.userEmail || 'customer@farmlyf.com',
+        billing_email: this.buildCustomerEmail(orderData, 'customer'),
         billing_phone: orderData.shippingAddress.phone,
         shipping_is_billing: true,
         order_items: orderItems,
         payment_method: orderData.paymentMethod === 'cod' ? 'COD' : 'Prepaid',
         sub_total: orderData.amount,
-        length: defaults.length, // Default dimensions in cm
-        breadth: defaults.breadth,
-        height: defaults.height,
+        length: packageDimensions.length || defaults.length,
+        breadth: packageDimensions.breadth || defaults.breadth,
+        height: packageDimensions.height || defaults.height,
         weight: totalWeightKg > 0 ? Number(totalWeightKg.toFixed(3)) : defaults.weight, // Default weight in kg
       };
 
@@ -277,11 +358,11 @@ class ShiprocketService {
 
     const defaults = this.getDefaultDimensions();
     const freeAbove = Number(process.env.FREE_SHIPPING_ABOVE || 1500);
-    const { totalWeightKg } = this.buildOrderItems(items);
+    const { totalWeightKg, packageDimensions: derivedPackageDimensions } = this.buildOrderItems(items);
     const weight = totalWeightKg > 0 ? Number(totalWeightKg.toFixed(3)) : defaults.weight;
-    const length = Number(packageDimensions.length || defaults.length);
-    const breadth = Number(packageDimensions.breadth || defaults.breadth);
-    const height = Number(packageDimensions.height || defaults.height);
+    const length = Number(packageDimensions.length || derivedPackageDimensions.length || defaults.length);
+    const breadth = Number(packageDimensions.breadth || derivedPackageDimensions.breadth || defaults.breadth);
+    const height = Number(packageDimensions.height || derivedPackageDimensions.height || defaults.height);
     if (!this.isConfigured()) {
       return {
         ...this.getFallbackShipping(orderAmount, 'shiprocket_not_configured'),
@@ -522,7 +603,7 @@ class ShiprocketService {
     try {
       const headers = await this.getHeaders();
       const defaults = this.getDefaultDimensions();
-      const { orderItems, totalWeightKg } = this.buildOrderItems(returnData.items || []);
+      const { orderItems, totalWeightKg, packageDimensions } = this.buildOrderItems(returnData.items || []);
 
       // Transform to Shiprocket return order format
       const shiprocketReturnOrder = {
@@ -536,7 +617,7 @@ class ShiprocketService {
         pickup_state: originalOrder.shippingAddress?.state,
         pickup_country: 'India',
         pickup_pincode: originalOrder.shippingAddress?.pincode,
-        pickup_email: originalOrder.userEmail || 'customer@farmlyf.com',
+        pickup_email: this.buildCustomerEmail(originalOrder, 'pickup'),
         pickup_phone: originalOrder.shippingAddress?.phone,
         pickup_isd_code: '91',
         shipping_customer_name: process.env.SHIPROCKET_SELLER_NAME || 'FarmlyF',
@@ -554,9 +635,9 @@ class ShiprocketService {
         })),
         payment_method: 'Prepaid', // Returns are always prepaid
         sub_total: returnData.refundAmount || returnData.items.reduce((sum, i) => sum + (i.price * i.qty), 0),
-        length: defaults.length,
-        breadth: defaults.breadth,
-        height: defaults.height,
+        length: packageDimensions.length || defaults.length,
+        breadth: packageDimensions.breadth || defaults.breadth,
+        height: packageDimensions.height || defaults.height,
         weight: totalWeightKg > 0 ? Number(totalWeightKg.toFixed(3)) : defaults.weight,
       };
 

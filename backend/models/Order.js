@@ -7,6 +7,9 @@ const orderItemSchema = new mongoose.Schema({
   price: Number,
   image: String,
   weight: String,
+  length: Number,
+  breadth: Number,
+  height: Number,
   productId: String
 });
 
@@ -20,6 +23,7 @@ const orderSchema = new mongoose.Schema({
   id: { type: String, unique: true }, // Custom ID: "ORD-..."
   userId: String,
   userName: String,
+  userEmail: String,
   date: Date,
   status: { type: String, default: 'pending' },
   deliveryStatus: { type: String, default: 'pending' },
@@ -60,7 +64,10 @@ const orderSchema = new mongoose.Schema({
     courierId: String,
     estimatedDays: Number,
     shippingCharge: Number,
-    weight: Number
+    weight: Number,
+    length: Number,
+    breadth: Number,
+    height: Number
   },
   statusHistory: [statusHistorySchema],
   // Cancellation and refund fields

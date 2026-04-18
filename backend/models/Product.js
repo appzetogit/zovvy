@@ -6,6 +6,9 @@ const variantSchema = new mongoose.Schema({
   weight: String, // Kept for backward compatibility
   quantity: String, // Numeric value (e.g., "250", "1")
   unit: String,     // Unit type (e.g., "g", "kg", "piece")
+  length: Number,
+  breadth: Number,
+  height: Number,
   mrp: Number,
   price: Number,
   unitPrice: String,

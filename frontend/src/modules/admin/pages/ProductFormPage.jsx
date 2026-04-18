@@ -64,6 +64,22 @@ const BENEFIT_TITLES = [
 
 const UNIT_OPTIONS = ['g', 'kg'];
 
+const stripHtml = (value = '') => String(value).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+
+const toTrimmedString = (value) => String(value ?? '').trim();
+
+const isPositiveNumber = (value) => {
+    const num = Number(value);
+    return Number.isFinite(num) && num > 0;
+};
+
+const isNonNegativeNumber = (value) => {
+    const num = Number(value);
+    return Number.isFinite(num) && num >= 0;
+};
+
+const hasValue = (value) => value !== null && value !== undefined && String(value).trim() !== '';
+
 const getLegacyVariantSku = (product, variant, index) => {
     const brandCode = (product?.brand || 'SKU')
         .replace(/[^a-zA-Z0-9]/g, '')
@@ -90,6 +106,153 @@ const normalizeVariantForForm = (product, variant, index) => {
         sku: variant.sku || getLegacyVariantSku(product, { ...variant, quantity, unit }, index),
         quantity,
         unit,
+        length: variant.length ?? '',
+        breadth: variant.breadth ?? '',
+        height: variant.height ?? '',
+    };
+};
+
+const sanitizeStructuredItems = (items = [], requiredKeys = []) =>
+    (Array.isArray(items) ? items : [])
+        .map((item) => {
+            if (!item || typeof item !== 'object') return null;
+            const sanitized = Object.fromEntries(
+                Object.entries(item).map(([key, value]) => [key, typeof value === 'string' ? value.trim() : value])
+            );
+            const hasValue = requiredKeys.some((key) => toTrimmedString(sanitized[key]));
+            return hasValue ? sanitized : null;
+        })
+        .filter(Boolean);
+
+const validateProductForm = (formData) => {
+    const errors = {};
+    const trimmedName = toTrimmedString(formData.name);
+    const trimmedBrand = toTrimmedString(formData.brand);
+    const plainDescription = stripHtml(formData.description);
+    const variants = Array.isArray(formData.variants) ? formData.variants : [];
+    const variantErrors = [];
+
+    if (!trimmedName) {
+        errors.name = 'Product name is required.';
+    }
+
+    if (!trimmedBrand) {
+        errors.brand = 'Brand name is required.';
+    }
+
+    if (!formData.category) {
+        errors.category = 'Parent category is required.';
+    }
+
+    if (!plainDescription) {
+        errors.description = 'Product description is required.';
+    }
+
+    if (!toTrimmedString(formData.image)) {
+        errors.image = 'Primary product image is required.';
+    }
+
+    if (!variants.length) {
+        errors.variants = 'At least one variant is required.';
+    }
+
+    variants.forEach((variant, index) => {
+        const currentErrors = {};
+
+        if (!isPositiveNumber(variant.quantity)) {
+            currentErrors.quantity = 'Enter a valid quantity.';
+        }
+
+        if (!UNIT_OPTIONS.includes(variant.unit)) {
+            currentErrors.unit = 'Select a valid unit.';
+        }
+
+        if (!isPositiveNumber(variant.mrp)) {
+            currentErrors.mrp = 'MRP must be greater than 0.';
+        }
+
+        if (!isPositiveNumber(variant.price)) {
+            currentErrors.price = 'Selling price must be greater than 0.';
+        }
+
+        if (isPositiveNumber(variant.mrp) && isPositiveNumber(variant.price) && Number(variant.price) > Number(variant.mrp)) {
+            currentErrors.price = 'Selling price cannot exceed MRP.';
+        }
+
+        if (!isNonNegativeNumber(variant.stock)) {
+            currentErrors.stock = 'Stock cannot be negative.';
+        }
+
+        const providedDimensions = ['length', 'breadth', 'height'].filter((key) => hasValue(variant[key]));
+        if (providedDimensions.length > 0 && providedDimensions.length < 3) {
+            const message = 'Fill all dimensions or leave them blank.';
+            currentErrors.length = message;
+            currentErrors.breadth = message;
+            currentErrors.height = message;
+        } else {
+            ['length', 'breadth', 'height'].forEach((key) => {
+                if (hasValue(variant[key]) && !isPositiveNumber(variant[key])) {
+                    currentErrors[key] = 'Must be greater than 0.';
+                }
+            });
+        }
+
+        if (Object.keys(currentErrors).length) {
+            variantErrors[index] = currentErrors;
+        }
+    });
+
+    if (variantErrors.length) {
+        errors.variantRows = variantErrors;
+    }
+
+    return errors;
+};
+
+const buildProductPayload = (formData, { isEdit, id }) => {
+    const trimmedName = toTrimmedString(formData.name);
+    const trimmedBrand = toTrimmedString(formData.brand);
+    const cleanedVariants = (Array.isArray(formData.variants) ? formData.variants : []).map((variant, index) => {
+        const quantity = toTrimmedString(variant.quantity);
+        const unit = toTrimmedString(variant.unit || 'g');
+        return {
+            ...variant,
+            id: variant.id || `${Date.now()}-${index}`,
+            sku: toTrimmedString(variant.sku) || getLegacyVariantSku({ brand: trimmedBrand }, { ...variant, quantity, unit }, index),
+            quantity,
+            unit,
+            weight: quantity && unit ? `${quantity}${unit}` : toTrimmedString(variant.weight),
+            length: hasValue(variant.length) ? Number(variant.length) : undefined,
+            breadth: hasValue(variant.breadth) ? Number(variant.breadth) : undefined,
+            height: hasValue(variant.height) ? Number(variant.height) : undefined,
+            mrp: Number(variant.mrp),
+            price: Number(variant.price),
+            stock: Number(variant.stock),
+            unitPrice: toTrimmedString(variant.unitPrice),
+        };
+    });
+
+    return {
+        ...formData,
+        id: isEdit ? id : `prod_${Date.now()}`,
+        name: trimmedName,
+        brand: trimmedBrand,
+        image: toTrimmedString(formData.image),
+        category: toTrimmedString(formData.category),
+        subcategory: toTrimmedString(formData.subcategory),
+        tag: toTrimmedString(formData.tag),
+        description: formData.description,
+        rating: Number(formData.rating) || 0,
+        images: (Array.isArray(formData.images) ? formData.images : []).map((img) => toTrimmedString(img)).filter(Boolean),
+        variants: cleanedVariants,
+        benefits: sanitizeStructuredItems(formData.benefits, ['title', 'description']),
+        specifications: sanitizeStructuredItems(formData.specifications, ['label', 'value']),
+        faqs: sanitizeStructuredItems(formData.faqs, ['q', 'a']),
+        nutrition: sanitizeStructuredItems(formData.nutrition, ['label', 'per100g', 'perServe']),
+        seoTitle: toTrimmedString(formData.seoTitle),
+        seoDescription: toTrimmedString(formData.seoDescription),
+        seoImage: toTrimmedString(formData.seoImage),
+        updatedAt: Date.now()
     };
 };
 
@@ -147,6 +310,7 @@ const ProductFormPage = () => {
     });
 
     const isEdit = Boolean(id);
+    const [validationErrors, setValidationErrors] = useState({});
 
     const [formData, setFormData] = useState({
         name: '',
@@ -159,7 +323,7 @@ const ProductFormPage = () => {
         description: '',
         rating: 4.5,
         variants: [
-            { id: Date.now(), sku: '', weight: '', quantity: '', unit: 'g', mrp: '', price: '', stock: 100, unitPrice: '' }
+            { id: Date.now(), sku: '', weight: '', quantity: '', unit: 'g', length: '', breadth: '', height: '', mrp: '', price: '', stock: 100, unitPrice: '' }
         ],
         benefits: [
             { title: 'Heart-Healthy', description: 'Contains healthy fats good for the heart.' }
@@ -228,10 +392,33 @@ const ProductFormPage = () => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
+        setValidationErrors(prev => {
+            if (!prev[name]) return prev;
+            const next = { ...prev };
+            delete next[name];
+            return next;
+        });
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleVariantChange = (vId, field, value) => {
+        const variantIndex = formData.variants.findIndex(v => v.id === vId);
+        if (variantIndex >= 0) {
+            setValidationErrors(prev => {
+                if (!prev.variantRows?.[variantIndex]?.[field]) return prev;
+                const next = { ...prev, variantRows: [...prev.variantRows] };
+                next.variantRows[variantIndex] = { ...next.variantRows[variantIndex] };
+                delete next.variantRows[variantIndex][field];
+                if (Object.keys(next.variantRows[variantIndex]).length === 0) {
+                    next.variantRows[variantIndex] = undefined;
+                }
+                if (!next.variantRows.some(Boolean)) {
+                    delete next.variantRows;
+                }
+                return next;
+            });
+        }
+
         setFormData(prev => ({
             ...prev,
             variants: prev.variants.map(v => {
@@ -254,7 +441,7 @@ const ProductFormPage = () => {
     const addVariant = () => {
         setFormData(prev => ({
             ...prev,
-            variants: [...prev.variants, { id: Date.now(), sku: '', weight: '', quantity: '', unit: 'g', mrp: '', price: '', stock: 0, unitPrice: '' }]
+            variants: [...prev.variants, { id: Date.now(), sku: '', weight: '', quantity: '', unit: 'g', length: '', breadth: '', height: '', mrp: '', price: '', stock: 0, unitPrice: '' }]
         }));
     };
 
@@ -285,26 +472,23 @@ const ProductFormPage = () => {
 
     const handleSave = async (e) => {
         e.preventDefault();
-
-        // Basic Validation
-        if (!formData.name.trim()) {
-            toast.error('Product name is required');
+        const errors = validateProductForm(formData);
+        if (Object.keys(errors).length) {
+            setValidationErrors(errors);
+            const firstVariantError = errors.variantRows?.find(Boolean);
+            const firstErrorMessage = errors.name
+                || errors.brand
+                || errors.category
+                || errors.description
+                || errors.image
+                || errors.variants
+                || (firstVariantError ? Object.values(firstVariantError)[0] : null)
+                || 'Please fix the highlighted fields.';
+            toast.error(firstErrorMessage);
             return;
         }
-        // Basic check to see if description is empty (stripping HTML tags)
-        if (!formData.description.replace(/<[^>]*>/g, '').trim()) {
-            // Optional: warn if description is empty, or let it pass. user asked for it so likely wants to use it.
-        }
-        if (!formData.category) {
-            toast.error('Parent category is required');
-            return;
-        }
 
-        const finalData = {
-            ...formData,
-            id: isEdit ? id : `prod_${Date.now()}`, // Consistent prefix + unique timestamp
-            updatedAt: Date.now()
-        };
+        const finalData = buildProductPayload(formData, { isEdit, id });
 
         try {
             if (isEdit) {
@@ -341,6 +525,7 @@ const ProductFormPage = () => {
                 </div>
                 <button
                     onClick={handleSave}
+                    type="button"
                     className="bg-black text-white px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-gray-900 transition-all shadow-xl shadow-black/10"
                 >
                     <Save size={18} /> Save Product
@@ -366,8 +551,9 @@ const ProductFormPage = () => {
                                     value={formData.name}
                                     onChange={handleChange}
                                     placeholder="e.g., Premium Royal Cashews"
-                                    className="w-full bg-white border border-gray-300 rounded-2xl p-4 text-sm font-bold text-black outline-none focus:border-black transition-all"
+                                    className={`w-full bg-white border rounded-2xl p-4 text-sm font-bold text-black outline-none transition-all ${validationErrors.name ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-black'}`}
                                 />
+                                {validationErrors.name && <p className="text-xs font-semibold text-red-600">{validationErrors.name}</p>}
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -378,8 +564,9 @@ const ProductFormPage = () => {
                                         name="brand"
                                         value={formData.brand}
                                         onChange={handleChange}
-                                        className="w-full bg-white border border-gray-300 rounded-2xl p-4 text-sm font-bold text-black outline-none focus:border-black transition-all"
+                                        className={`w-full bg-white border rounded-2xl p-4 text-sm font-bold text-black outline-none transition-all ${validationErrors.brand ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-black'}`}
                                     />
+                                    {validationErrors.brand && <p className="text-xs font-semibold text-red-600">{validationErrors.brand}</p>}
                                 </div>
                                 <div className="flex flex-col gap-2">
                                     <label className="text-xs font-black text-black uppercase tracking-widest ml-1 text-left">Product Rating (0-5)</label>
@@ -454,6 +641,7 @@ const ProductFormPage = () => {
                                         }}
                                     />
                                 </div>
+                                {validationErrors.description && <p className="text-xs font-semibold text-red-600">{validationErrors.description}</p>}
                             </div>
 
                             {/* Benefits Section - Moved Inside */}
@@ -604,12 +792,15 @@ const ProductFormPage = () => {
                         </div>
 
                         {/* Table Header */}
-                        <div className="grid grid-cols-12 gap-4 px-4 mb-2">
+                        <div className="grid grid-cols-16 gap-4 px-4 mb-2">
                             <div className="col-span-2">
                                 <label className="text-[10px] font-black text-black uppercase tracking-widest ml-1 text-left">SKU Code</label>
                             </div>
                             <div className="col-span-3">
                                 <label className="text-[10px] font-black text-black uppercase tracking-widest ml-1 text-left">Quantity / Unit</label>
+                            </div>
+                            <div className="col-span-5">
+                                <label className="text-[10px] font-black text-black uppercase tracking-widest ml-1 text-left">Dimensions (cm)</label>
                             </div>
                             <div className="col-span-2">
                                 <label className="text-[10px] font-black text-black uppercase tracking-widest ml-1 text-left">MRP (₹)</label>
@@ -625,8 +816,8 @@ const ProductFormPage = () => {
 
                         <div className="space-y-3">
                             {formData.variants.map((variant, index) => (
-                                <div key={variant.id} className="p-4 rounded-3xl bg-gray-50 border border-gray-100 grid grid-cols-12 gap-4 items-center group">
-                                    <div className="col-span-12 md:col-span-2">
+                                <div key={variant.id} className="p-4 rounded-3xl bg-gray-50 border border-gray-100 grid grid-cols-16 gap-4 items-start group">
+                                    <div className="col-span-16 xl:col-span-2">
                                         <input
                                             type="text"
                                             value={variant.sku}
@@ -635,14 +826,14 @@ const ProductFormPage = () => {
                                             className="w-full bg-white border border-gray-300 rounded-xl p-3 text-xs font-bold text-black outline-none focus:border-black transition-all"
                                         />
                                     </div>
-                                    <div className="col-span-12 md:col-span-3">
-                                        <div className="flex items-center bg-white border border-gray-300 rounded-xl focus-within:border-black transition-all">
+                                    <div className="col-span-16 xl:col-span-3">
+                                        <div className={`flex items-center bg-white border rounded-xl transition-all ${validationErrors.variantRows?.[index]?.quantity || validationErrors.variantRows?.[index]?.unit ? 'border-red-500 focus-within:border-red-500' : 'border-gray-300 focus-within:border-black'}`}>
                                             <input
                                                 type="number"
                                                 value={variant.quantity || ''}
-                                                onChange={(e) => handleVariantChange(variant.id, 'quantity', e.target.value)}
-                                                placeholder="250"
-                                                className="w-full bg-transparent p-3 text-xs font-bold text-black outline-none"
+                                            onChange={(e) => handleVariantChange(variant.id, 'quantity', e.target.value)}
+                                            placeholder="250"
+                                            className="w-full bg-transparent p-3 text-xs font-bold text-black outline-none"
                                             />
                                             <div className="w-px h-6 bg-gray-200"></div>
                                             <select
@@ -655,32 +846,73 @@ const ProductFormPage = () => {
                                                 ))}
                                             </select>
                                         </div>
+                                        {(validationErrors.variantRows?.[index]?.quantity || validationErrors.variantRows?.[index]?.unit) && (
+                                            <p className="mt-1 text-xs font-semibold text-red-600">
+                                                {validationErrors.variantRows?.[index]?.quantity || validationErrors.variantRows?.[index]?.unit}
+                                            </p>
+                                        )}
                                     </div>
-                                    <div className="col-span-6 md:col-span-2">
+                                    <div className="col-span-16 xl:col-span-5">
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                            <input
+                                                type="text"
+                                                inputMode="decimal"
+                                                value={variant.length ?? ''}
+                                                onChange={(e) => handleVariantChange(variant.id, 'length', e.target.value)}
+                                                placeholder="Length"
+                                                className={`w-full bg-white border rounded-xl px-4 py-3.5 text-sm font-bold text-black outline-none transition-all ${validationErrors.variantRows?.[index]?.length ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-black'}`}
+                                            />
+                                            <input
+                                                type="text"
+                                                inputMode="decimal"
+                                                value={variant.breadth ?? ''}
+                                                onChange={(e) => handleVariantChange(variant.id, 'breadth', e.target.value)}
+                                                placeholder="Breadth"
+                                                className={`w-full bg-white border rounded-xl px-4 py-3.5 text-sm font-bold text-black outline-none transition-all ${validationErrors.variantRows?.[index]?.breadth ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-black'}`}
+                                            />
+                                            <input
+                                                type="text"
+                                                inputMode="decimal"
+                                                value={variant.height ?? ''}
+                                                onChange={(e) => handleVariantChange(variant.id, 'height', e.target.value)}
+                                                placeholder="Height"
+                                                className={`w-full bg-white border rounded-xl px-4 py-3.5 text-sm font-bold text-black outline-none transition-all ${validationErrors.variantRows?.[index]?.height ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-black'}`}
+                                            />
+                                        </div>
+                                        {(validationErrors.variantRows?.[index]?.length || validationErrors.variantRows?.[index]?.breadth || validationErrors.variantRows?.[index]?.height) && (
+                                            <p className="mt-1 text-xs font-semibold text-red-600">
+                                                {validationErrors.variantRows?.[index]?.length || validationErrors.variantRows?.[index]?.breadth || validationErrors.variantRows?.[index]?.height}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div className="col-span-8 sm:col-span-5 xl:col-span-2">
                                         <input
                                             type="number"
                                             value={variant.mrp}
                                             onChange={(e) => handleVariantChange(variant.id, 'mrp', e.target.value)}
-                                            className="w-full bg-white border border-gray-300 rounded-xl p-3 text-xs font-bold text-black outline-none focus:border-black transition-all"
+                                            className={`w-full bg-white border rounded-xl p-3 text-xs font-bold text-black outline-none transition-all ${validationErrors.variantRows?.[index]?.mrp ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-black'}`}
                                         />
+                                        {validationErrors.variantRows?.[index]?.mrp && <p className="mt-1 text-xs font-semibold text-red-600">{validationErrors.variantRows[index].mrp}</p>}
                                     </div>
-                                    <div className="col-span-6 md:col-span-2">
+                                    <div className="col-span-8 sm:col-span-5 xl:col-span-2">
                                         <input
                                             type="number"
                                             value={variant.price}
                                             onChange={(e) => handleVariantChange(variant.id, 'price', e.target.value)}
-                                            className="w-full bg-white border border-gray-300 rounded-xl p-3 text-xs font-bold text-black outline-none focus:border-black transition-all"
+                                            className={`w-full bg-white border rounded-xl p-3 text-xs font-bold text-black outline-none transition-all ${validationErrors.variantRows?.[index]?.price ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-black'}`}
                                         />
+                                        {validationErrors.variantRows?.[index]?.price && <p className="mt-1 text-xs font-semibold text-red-600">{validationErrors.variantRows[index].price}</p>}
                                     </div>
-                                    <div className="col-span-6 md:col-span-2">
+                                    <div className="col-span-8 sm:col-span-5 xl:col-span-2">
                                         <input
                                             type="number"
                                             value={variant.stock}
                                             onChange={(e) => handleVariantChange(variant.id, 'stock', e.target.value)}
-                                            className="w-full bg-white border border-gray-300 rounded-xl p-3 text-xs font-bold text-black outline-none focus:border-black transition-all"
+                                            className={`w-full bg-white border rounded-xl p-3 text-xs font-bold text-black outline-none transition-all ${validationErrors.variantRows?.[index]?.stock ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-black'}`}
                                         />
+                                        {validationErrors.variantRows?.[index]?.stock && <p className="mt-1 text-xs font-semibold text-red-600">{validationErrors.variantRows[index].stock}</p>}
                                     </div>
-                                    <div className="col-span-12 md:col-span-1 text-center">
+                                    <div className="col-span-16 xl:col-span-1 text-center xl:self-center">
                                         <button
                                             type="button"
                                             onClick={() => removeVariant(variant.id)}
@@ -692,6 +924,10 @@ const ProductFormPage = () => {
                                     </div>
                                 </div>
                             ))}
+                            {validationErrors.variants && <p className="text-xs font-semibold text-red-600">{validationErrors.variants}</p>}
+                            {validationErrors.variantRows?.some(Boolean) && !validationErrors.variants && (
+                                <p className="text-xs font-semibold text-red-600">Please correct the invalid variant values.</p>
+                            )}
                         </div>
                     </div>
 
@@ -761,8 +997,9 @@ const ProductFormPage = () => {
                                 value={formData.image}
                                 onChange={handleChange}
                                 placeholder="Auto-fills on upload or paste path..."
-                                className="w-full bg-white border border-gray-300 rounded-2xl p-4 text-xs font-bold text-black outline-none focus:border-black transition-all"
+                                className={`w-full bg-white border rounded-2xl p-4 text-xs font-bold text-black outline-none transition-all ${validationErrors.image ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-black'}`}
                             />
+                            {validationErrors.image && <p className="text-xs font-semibold text-red-600">{validationErrors.image}</p>}
                         </div>
 
                         <div className="pt-6 border-t border-gray-200">
@@ -825,7 +1062,7 @@ const ProductFormPage = () => {
                                     name="category"
                                     value={formData.category}
                                     onChange={handleChange}
-                                    className="w-full bg-white border border-gray-300 rounded-2xl p-4 text-xs font-bold text-black outline-none focus:border-black transition-all cursor-pointer"
+                                    className={`w-full bg-white border rounded-2xl p-4 text-xs font-bold text-black outline-none transition-all cursor-pointer ${validationErrors.category ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-black'}`}
                                 >
                                     <option value="">Select Category</option>
                                     {dbCategories.filter(c => c.status === 'Active').map(cat => (
@@ -836,6 +1073,7 @@ const ProductFormPage = () => {
                                         <option value="combos-packs">Combos & Packs</option>
                                     )}
                                 </select>
+                                {validationErrors.category && <p className="text-xs font-semibold text-red-600">{validationErrors.category}</p>}
                             </div>
                             <div className="flex flex-col gap-2">
                                 <label className="text-[10px] font-black text-black uppercase tracking-widest ml-1 text-left">Sub-Category</label>
