@@ -43,22 +43,66 @@ const colors = [
     'bg-[#7E3021]', 'bg-[#C08552]', 'bg-[#7D5A5A]', 'bg-[#A68966]'
 ];
 
-import { useCategories } from '../../../hooks/useProducts';
+import { useCategories, useSubCategories } from '../../../hooks/useProducts';
 
 const CategoryStrip = () => {
-    const { data: categories = [], isLoading } = useCategories(); // Use Parent Categories
+    const { data: categories = [], isLoading: isCategoriesLoading } = useCategories();
+    const { data: subCategories = [], isLoading: isSubCategoriesLoading } = useSubCategories();
     const scrollRef = useRef(null);
     const navigate = useNavigate();
 
-    // Show only active strip categories and keep them in creation order:
-    // first created appears first, newer categories are appended later.
+    const isLoading = isCategoriesLoading || isSubCategoriesLoading;
+
+    // Show active categories and sub-categories marked for the strip.
     const displayCategories = useMemo(() => {
-        return categories
-            .map((category, index) => ({ category, index }))
-            .filter(({ category }) => category.showInShopByCategory && category.status === 'Active')
+        const activeParentCategories = categories.filter(
+            (category) => category.status === 'Active'
+        );
+        const parentById = new Map(
+            activeParentCategories.map((category) => [String(category._id || category.id), category])
+        );
+
+        const categoryItems = activeParentCategories
+            .filter((category) => category.showInShopByCategory)
+            .map((category, index) => ({
+                item: {
+                    ...category,
+                    type: 'category',
+                    navigationPath: `/category/${category.slug}`
+                },
+                index
+            }));
+
+        const subCategoryItems = subCategories
+            .filter((subCategory) => subCategory.showInShopByCategory && subCategory.status === 'Active')
+            .map((subCategory, index) => {
+                const parentId = String(
+                    subCategory.parent?._id ||
+                    subCategory.parent?.id ||
+                    subCategory.parent ||
+                    ''
+                );
+                const parentCategory = parentById.get(parentId);
+
+                if (!parentCategory) {
+                    return null;
+                }
+
+                return {
+                    item: {
+                        ...subCategory,
+                        type: 'subcategory',
+                        navigationPath: `/category/${parentCategory.slug}/${subCategory.slug}`
+                    },
+                    index: categoryItems.length + index
+                };
+            })
+            .filter(Boolean);
+
+        return [...categoryItems, ...subCategoryItems]
             .sort((a, b) => {
-                const aTime = a.category.createdAt ? new Date(a.category.createdAt).getTime() : Number.MAX_SAFE_INTEGER;
-                const bTime = b.category.createdAt ? new Date(b.category.createdAt).getTime() : Number.MAX_SAFE_INTEGER;
+                const aTime = a.item.createdAt ? new Date(a.item.createdAt).getTime() : Number.MAX_SAFE_INTEGER;
+                const bTime = b.item.createdAt ? new Date(b.item.createdAt).getTime() : Number.MAX_SAFE_INTEGER;
 
                 if (aTime !== bTime) {
                     return aTime - bTime;
@@ -66,8 +110,8 @@ const CategoryStrip = () => {
 
                 return a.index - b.index;
             })
-            .map(({ category }) => category);
-    }, [categories]);
+            .map(({ item }) => item);
+    }, [categories, subCategories]);
 
     const scroll = (direction) => {
         if (scrollRef.current) {
@@ -130,7 +174,7 @@ const CategoryStrip = () => {
                                     key={cat._id || cat.id}
                                     whileHover={{ y: -10, transition: { duration: 0.3 } }}
                                     // Navigate to subcategory page filter? Currently assumes structure
-                                    onClick={() => navigate(`/category/${cat.slug}`)}
+                                    onClick={() => navigate(cat.navigationPath)}
                                     className="relative min-w-[160px] md:min-w-[280px] h-14 md:h-24 flex items-center cursor-pointer group/item flex-shrink-0"
                                 >
                                     {/* Elongated Pill Background */}

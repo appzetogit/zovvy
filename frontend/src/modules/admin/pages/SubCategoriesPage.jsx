@@ -6,12 +6,14 @@ import {
     Search,
     Edit2,
     Trash2,
+    Image as ImageIcon,
     Layers,
     Loader,
     ChevronDown,
     CheckCircle2,
     EyeOff,
-    Boxes
+    Boxes,
+    Upload
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
@@ -52,7 +54,10 @@ const SubCategoriesPage = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 8;
 
-    const [newItem, setNewItem] = useState({ name: '', parentId: '', status: 'Active', showInShopByCategory: true });
+    const [newItem, setNewItem] = useState({ name: '', parentId: '', image: '', status: 'Active', showInShopByCategory: true });
+    const [imageFile, setImageFile] = useState(null);
+    const [preview, setPreview] = useState(null);
+    const fileInputRef = React.useRef(null);
 
     // Accordion State
     const [expandedParents, setExpandedParents] = useState({});
@@ -67,6 +72,14 @@ const SubCategoriesPage = () => {
     useEffect(() => {
         fetchData();
     }, []);
+
+    const resetFormState = () => {
+        setShowAddModal(false);
+        setEditingSub(null);
+        setNewItem({ name: '', parentId: '', image: '', status: 'Active', showInShopByCategory: true });
+        setImageFile(null);
+        setPreview(null);
+    };
 
     const fetchData = async () => {
         try {
@@ -86,12 +99,43 @@ const SubCategoriesPage = () => {
         }
     };
 
+    const handleFileChange = (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setImageFile(file);
+            setPreview(URL.createObjectURL(file));
+        }
+    };
+
+    const uploadImage = async (file) => {
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const res = await fetch(`${API_BASE_URL}/upload`, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.message || 'Image upload failed');
+        }
+
+        return data.url;
+    };
+
     const handleSubmit = async (e, isEdit = false) => {
         e.preventDefault();
         setSubmitLoading(true);
         const toastId = toast.loading(isEdit ? 'Updating...' : 'Creating...');
 
         try {
+            let imageUrl = isEdit ? editingSub.image : newItem.image;
+
+            if (imageFile) {
+                imageUrl = await uploadImage(imageFile);
+            }
+
             const method = isEdit ? 'PUT' : 'POST';
             const editingSubId = getEntityId(editingSub);
             const url = isEdit
@@ -103,12 +147,14 @@ const SubCategoriesPage = () => {
                 payload = {
                     ...editingSub,
                     parent: getEntityId(editingSub.parent),
+                    image: imageUrl,
                     showInShopByCategory: editingSub.showInShopByCategory
                 };
             } else {
                 payload = {
                     name: newItem.name,
                     parent: newItem.parentId,
+                    image: imageUrl,
                     status: newItem.status,
                     showInShopByCategory: newItem.showInShopByCategory
                 };
@@ -129,9 +175,7 @@ const SubCategoriesPage = () => {
                 toast.success(isEdit ? 'Sub-category updated' : 'Sub-category created', { id: toastId });
                 fetchData(); // Refresh local list
                 refreshGlobalCategories(); // Refresh global context
-                setShowAddModal(false);
-                setEditingSub(null);
-                setNewItem({ name: '', parentId: '', status: 'Active', showInShopByCategory: true });
+                resetFormState();
             } else {
                 toast.error(data.message || 'Operation failed', { id: toastId });
             }
@@ -232,7 +276,9 @@ const SubCategoriesPage = () => {
                 </div>
                 <button
                     onClick={() => {
-                        setNewItem({ name: '', parentId: '', status: 'Active', showInShopByCategory: true });
+                        setNewItem({ name: '', parentId: '', image: '', status: 'Active', showInShopByCategory: true });
+                        setImageFile(null);
+                        setPreview(null);
                         setShowAddModal(true);
                     }}
                     className="bg-[#2c5336] text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-[#1f3b26] transition-all shadow-lg shadow-[#2c5336]/20"
@@ -343,7 +389,9 @@ const SubCategoriesPage = () => {
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            setNewItem({ ...newItem, parentId: getEntityId(category) });
+                                            setNewItem({ name: '', parentId: getEntityId(category), image: '', status: 'Active', showInShopByCategory: true });
+                                            setImageFile(null);
+                                            setPreview(null);
                                             setShowAddModal(true);
                                         }}
                                         className="bg-white text-primary border border-gray-200 hover:bg-gray-50 hover:text-primaryDeep px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all"
@@ -357,6 +405,7 @@ const SubCategoriesPage = () => {
                                             <AdminTableHeader>
                                                 <AdminTableHead className="py-3 text-gray-600">Sub-category</AdminTableHead>
                                                 <AdminTableHead className="py-3 text-gray-600">Products</AdminTableHead>
+                                                <AdminTableHead className="py-3 text-gray-600">Shop Strip</AdminTableHead>
                                                 <AdminTableHead className="py-3 text-gray-600">Status</AdminTableHead>
                                                 <AdminTableHead className="py-3 text-gray-600 text-right">Actions</AdminTableHead>
                                             </AdminTableHeader>
@@ -364,11 +413,31 @@ const SubCategoriesPage = () => {
                                                 {subs.map((sub) => (
                                                     <AdminTableRow key={sub._id || sub.id} className="hover:bg-gray-100">
                                                         <AdminTableCell className="py-3">
-                                                            <span className="font-medium text-gray-900 text-sm">{sub.name}</span>
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-10 h-10 bg-white rounded-lg border border-gray-200 flex items-center justify-center p-1 overflow-hidden shrink-0">
+                                                                    {sub.image ? (
+                                                                        <img src={sub.image} alt="" className="w-full h-full object-cover rounded-md" />
+                                                                    ) : (
+                                                                        <ImageIcon size={16} className="text-gray-300" />
+                                                                    )}
+                                                                </div>
+                                                                <span className="font-medium text-gray-900 text-sm">{sub.name}</span>
+                                                            </div>
                                                         </AdminTableCell>
                                                         <AdminTableCell className="py-3">
                                                             <span className="text-xs font-medium text-gray-600 bg-white px-2 py-0.5 rounded border border-gray-200">
                                                                 {sub.productCount || 0}
+                                                            </span>
+                                                        </AdminTableCell>
+                                                        <AdminTableCell className="py-3">
+                                                            <span
+                                                                className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border inline-flex items-center ${
+                                                                    sub.showInShopByCategory
+                                                                        ? 'bg-blue-50 text-blue-700 border-blue-100'
+                                                                        : 'bg-gray-50 text-gray-500 border-gray-100'
+                                                                }`}
+                                                            >
+                                                                {sub.showInShopByCategory ? 'Yes' : 'No'}
                                                             </span>
                                                         </AdminTableCell>
                                                         <AdminTableCell className="py-3">
@@ -384,6 +453,8 @@ const SubCategoriesPage = () => {
                                                             <div className="flex items-center justify-end gap-1">
                                                                 <button onClick={() => {
                                                                     setEditingSub(sub);
+                                                                    setPreview(sub.image || null);
+                                                                    setImageFile(null);
                                                                 }} className="p-1.5 text-gray-400 hover:text-primary hover:bg-white rounded-lg"><Edit2 size={14} /></button>
                                                                 <button onClick={() => handleDelete(sub._id || sub.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-white rounded-lg"><Trash2 size={14} /></button>
                                                             </div>
@@ -392,7 +463,7 @@ const SubCategoriesPage = () => {
                                                 ))}
                                                 {subs.length === 0 && (
                                                     <AdminTableRow>
-                                                        <AdminTableCell colSpan="4" className="px-6 py-8 text-center text-sm text-gray-400">
+                                                        <AdminTableCell colSpan="5" className="px-6 py-8 text-center text-sm text-gray-400">
                                                             No items yet
                                                         </AdminTableCell>
                                                     </AdminTableRow>
@@ -417,7 +488,7 @@ const SubCategoriesPage = () => {
             {/* Modal */}
             {(showAddModal || editingSub) && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-footerBg/60 backdrop-blur-sm" onClick={() => { setShowAddModal(false); setEditingSub(null); }} />
+                    <div className="absolute inset-0 bg-footerBg/60 backdrop-blur-sm" onClick={resetFormState} />
                     <div className="bg-white rounded-[1.5rem] w-full max-w-[320px] relative z-10 overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
                         <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
                             <div>
@@ -426,7 +497,7 @@ const SubCategoriesPage = () => {
                                     Parent: {globalParents.find(p => getEntityId(p) === (editingSub ? getEntityId(editingSub.parent) : newItem.parentId))?.name || 'Select Parent'}
                                 </p>
                             </div>
-                            <button onClick={() => { setShowAddModal(false); setEditingSub(null); }} className="p-1">
+                            <button onClick={resetFormState} className="p-1">
                                 <Plus size={16} className="rotate-45 text-gray-400" />
                             </button>
                         </div>
@@ -451,6 +522,35 @@ const SubCategoriesPage = () => {
                                     onChange={(e) => editingSub ? setEditingSub({ ...editingSub, name: e.target.value }) : setNewItem({ ...newItem, name: e.target.value })}
                                     className="w-full bg-gray-50 border border-gray-100 rounded-lg px-3 py-2 text-xs font-bold text-footerBg outline-none focus:border-[#2c5336]"
                                 />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-1 block">Photo</label>
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    onChange={handleFileChange}
+                                    accept="image/*"
+                                    className="hidden"
+                                />
+                                <div
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="w-full h-24 rounded-lg border-2 border-dashed border-gray-100 bg-gray-50 flex flex-col items-center justify-center cursor-pointer hover:border-[#2c5336]/30 transition-all overflow-hidden relative group"
+                                >
+                                    {preview ? (
+                                        <>
+                                            <img src={preview} className="w-full h-full object-cover" alt="" />
+                                            <div className="absolute inset-0 bg-footerBg/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                <Upload size={18} className="text-white" />
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <ImageIcon size={18} className="text-gray-200 mb-1" />
+                                            <p className="text-[8px] font-black text-gray-400 uppercase">Click to upload</p>
+                                        </>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-2 pt-1">
