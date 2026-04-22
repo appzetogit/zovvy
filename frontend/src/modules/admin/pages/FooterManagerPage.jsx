@@ -5,6 +5,7 @@ import {
     Facebook,
     Instagram,
     Twitter,
+    Linkedin,
     Plus,
     Trash2,
     Edit2,
@@ -38,7 +39,8 @@ const DEFAULT_FOOTER_CONFIG = {
     socials: {
         facebook: '#',
         instagram: '#',
-        twitter: '#'
+        twitter: '#',
+        linkedin: '#'
     },
     columns: [
         {
@@ -268,6 +270,16 @@ const FooterManagerPage = () => {
                                     className="w-full bg-slate-50 border border-slate-100 rounded-xl p-3 text-sm font-medium text-footerBg outline-none focus:border-black transition-all disabled:bg-gray-100 disabled:text-gray-500"
                                     value={config.socials.twitter}
                                     onChange={(e) => updateNestedState('socials.twitter', e.target.value)}
+                                    disabled={!isEditing}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-2"><Linkedin size={12} /> LinkedIn URL</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-slate-50 border border-slate-100 rounded-xl p-3 text-sm font-medium text-footerBg outline-none focus:border-black transition-all disabled:bg-gray-100 disabled:text-gray-500"
+                                    value={config.socials.linkedin || ''}
+                                    onChange={(e) => updateNestedState('socials.linkedin', e.target.value)}
                                     disabled={!isEditing}
                                 />
                             </div>

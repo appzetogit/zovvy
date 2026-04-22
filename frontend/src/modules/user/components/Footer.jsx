@@ -6,6 +6,7 @@ import {
     Facebook,
     Instagram,
     Twitter,
+    Linkedin,
     Mail,
     Phone,
     MapPin,
@@ -31,7 +32,8 @@ const DEFAULT_FOOTER_CONFIG = {
     socials: {
         facebook: '#',
         instagram: '#',
-        twitter: '#'
+        twitter: '#',
+        linkedin: '#'
     },
     columns: [
         {
@@ -102,6 +104,11 @@ const Footer = () => {
                         {config.socials.twitter && (
                             <a href={config.socials.twitter} target="_blank" rel="noopener noreferrer" className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-primary hover:border-primary hover:text-white transition-all">
                                 <Twitter size={16} md:size={18} />
+                            </a>
+                        )}
+                        {config.socials.linkedin && (
+                            <a href={config.socials.linkedin} target="_blank" rel="noopener noreferrer" className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-primary hover:border-primary hover:text-white transition-all">
+                                <Linkedin size={16} md:size={18} />
                             </a>
                         )}
                     </div>
