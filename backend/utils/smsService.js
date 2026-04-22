@@ -39,8 +39,16 @@ function normalizeMobileNumber(mobile) {
  * Build DLT-compliant message
  */
 function buildOtpMessage(otp) {
-    const appName = process.env.APP_NAME || 'Indian Kart';
-    return `Welcome to the ${appName} powered by SMSINDIAHUB. Your OTP for registration is ${otp}`;
+    const appName = process.env.APP_NAME || 'Zovvy';
+    return `Your OTP for login to ${appName} is ${otp}. Do not share it with anyone.`;
+}
+
+/**
+ * Build delivery OTP message
+ */
+function buildDeliveryOtpMessage(orderId, otp) {
+    const appName = process.env.APP_NAME || 'Zovvy';
+    return `Your delivery OTP for order ${orderId.slice(-6).toUpperCase()} on ${appName} is ${otp}.`;
 }
 
 /**
@@ -79,30 +87,48 @@ async function sendSmsViaApi(mobile, message) {
     const API_KEY = process.env.SMS_INDIA_HUB_API_KEY;
     const SENDER_ID = process.env.SMS_INDIA_HUB_SENDER_ID;
     const TEMPLATE_ID = process.env.SMS_INDIA_HUB_DLT_TEMPLATE_ID;
-    const API_URL = process.env.SMS_INDIA_HUB_API_URL || 'http://cloud.smsindiahub.in/vendorsms/pushsms.aspx';
-    const GWID = process.env.SMS_INDIA_HUB_GWID || '2';
+    const PE_ID = process.env.SMS_INDIA_HUB_PE_ID;
+    const CHANNEL = process.env.SMS_INDIA_HUB_CHANNEL || 'Trans';
+    const DCS = process.env.SMS_INDIA_HUB_DCS || '0';
+    const FLASH_SMS = process.env.SMS_INDIA_HUB_FLASHSMS || '0';
+    const ROUTE = process.env.SMS_INDIA_HUB_ROUTE || '0';
+    const API_URL = process.env.SMS_INDIA_HUB_API_URL || 'https://cloud.smsindiahub.in/api/mt/SendSMS';
 
     if (!API_KEY || !SENDER_ID) {
         throw new Error('SMS India HUB credentials are missing. Please check environment variables.');
+    }
+
+    if (!TEMPLATE_ID) {
+        throw new Error('SMS India HUB DLT template ID is missing. Please check environment variables.');
+    }
+
+    if (!PE_ID) {
+        throw new Error('SMS India HUB PE ID is missing. Please check environment variables.');
     }
 
     const cleanMobile = normalizeMobileNumber(mobile);
 
     const params = {
         APIKey: API_KEY.trim(),
-        msisdn: cleanMobile,
-        sid: SENDER_ID.trim(),
-        msg: message,
-        fl: '0',
-        gwid: GWID,
+        senderid: SENDER_ID.trim(),
+        channel: CHANNEL,
+        DCS,
+        flashsms: FLASH_SMS,
+        number: cleanMobile,
+        text: message,
+        DLTTemplateId: TEMPLATE_ID.trim(),
+        route: ROUTE,
+        PEId: PE_ID.trim(),
     };
 
-    if (TEMPLATE_ID && TEMPLATE_ID.trim()) {
-        params.DLT_TE_ID = TEMPLATE_ID.trim();
-    }
-
     // DEBUG LOG
-    console.log('[SMS] Sending via API:', { mobile: cleanMobile, sender: SENDER_ID, url: API_URL });
+    console.log('[SMS] Sending via API:', {
+        mobile: cleanMobile,
+        sender: SENDER_ID,
+        templateId: TEMPLATE_ID,
+        peId: PE_ID,
+        url: API_URL
+    });
 
     const response = await axios.get(API_URL, {
         params,
@@ -343,9 +369,7 @@ export async function generateDeliveryOtp(orderId, customerPhone) {
         await order.save();
 
         try {
-            // Use SMS India HUB for Delivery OTPs as well
-            const appName = process.env.APP_NAME || 'Indian Kart';
-            const message = `Welcome to the ${appName} powered by SMSINDIAHUB. Your Delivery OTP for Order #${orderId.slice(-6).toUpperCase()} is ${otp}`;
+            const message = buildDeliveryOtpMessage(orderId, otp);
             
             if (process.env.USE_MOCK_OTP !== 'true') {
                  await sendSmsViaApi(customerPhone, message);

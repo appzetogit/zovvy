@@ -18,6 +18,14 @@ import {
 import { useProducts, useCategories, useSubCategories, useComboCategories } from '../../../hooks/useProducts';
 import ProductCard from '../components/ProductCard';
 
+const normalizeSlug = (value) => String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^\w\s-]+/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+
 const FilterSection = ({ title, children, openFilters, toggleAccordion }) => (
     <div className="border-b border-[#842A35] last:border-b-0">
         <button
@@ -129,6 +137,40 @@ const CatalogPage = () => {
         return regularCats;
     }, [categories, subCategories, comboCategories]);
 
+    const findCategoryByRef = React.useCallback((ref) => {
+        if (!ref) return null;
+        const refString = String(ref).trim();
+        const refSlug = normalizeSlug(refString);
+
+        return categories.find((cat) => {
+            const candidateRefs = [cat?._id, cat?.id, cat?.slug, cat?.name].filter(Boolean);
+            return candidateRefs.some((candidate) => {
+                const candidateString = String(candidate).trim();
+                return candidateString === refString || normalizeSlug(candidateString) === refSlug;
+            });
+        }) || null;
+    }, [categories]);
+
+    const findSubCategoryByRef = React.useCallback((ref) => {
+        if (!ref) return null;
+        const refString = String(ref).trim();
+        const refSlug = normalizeSlug(refString);
+
+        return subCategories.find((sub) => {
+            const candidateRefs = [sub?._id, sub?.id, sub?.slug, sub?.name].filter(Boolean);
+            return candidateRefs.some((candidate) => {
+                const candidateString = String(candidate).trim();
+                return candidateString === refString || normalizeSlug(candidateString) === refSlug;
+            });
+        }) || null;
+    }, [subCategories]);
+
+    const getSubCategoryParent = React.useCallback((sub) => {
+        if (!sub) return null;
+        const parentRef = sub.parent?._id || sub.parent?.id || sub.parent?.slug || sub.parent?.name || sub.parent;
+        return findCategoryByRef(parentRef);
+    }, [findCategoryByRef]);
+
     // Unique values for filters
     const filterOptions = useMemo(() => {
         const weights = [...new Set(products.flatMap(p => {
@@ -175,32 +217,46 @@ const CatalogPage = () => {
         if (searchVal) setSearchQuery(searchVal);
 
         if (subCategory) {
-            const mainCat = categoriesData.find(c => c.id === category);
-            if (mainCat) {
-                setSelectedCategory(mainCat.id);
-                const sub = mainCat.subcategories.find(s => s.toLowerCase().replace(/ /g, '-') === subCategory);
-                setSelectedSubcategory(sub || 'all');
-            }
-        } else if (category) {
-            const mainCat = categoriesData.find(c => c.id === category || c.name.toLowerCase().replace(/ /g, '-') === category);
-            if (mainCat) {
-                setSelectedCategory(mainCat.id);
+            const mainCat = findCategoryByRef(category);
+            const matchedSub = subCategories.find((sub) => {
+                const subMatches = normalizeSlug(sub?.slug || sub?.name) === normalizeSlug(subCategory);
+                if (!subMatches) return false;
+                const parent = getSubCategoryParent(sub);
+                return mainCat ? normalizeSlug(parent?.slug || parent?.name) === normalizeSlug(mainCat?.slug || mainCat?.name) : true;
+            }) || findSubCategoryByRef(subCategory);
+
+            if (matchedSub) {
+                const parent = getSubCategoryParent(matchedSub);
+                setSelectedCategory(parent?.slug || mainCat?.slug || 'all');
+                setSelectedSubcategory(matchedSub.name || 'all');
+            } else if (mainCat) {
+                setSelectedCategory(mainCat.slug || 'all');
                 setSelectedSubcategory('all');
             } else {
-                for (const cat of categoriesData) {
-                    const sub = cat.subcategories.find(s => s.toLowerCase().replace(/ /g, '-') === category);
-                    if (sub) {
-                        setSelectedCategory(cat.id);
-                        setSelectedSubcategory(sub);
-                        break;
-                    }
+                setSelectedCategory('all');
+                setSelectedSubcategory('all');
+            }
+        } else if (category) {
+            const mainCat = findCategoryByRef(category);
+            if (mainCat) {
+                setSelectedCategory(mainCat.slug || 'all');
+                setSelectedSubcategory('all');
+            } else {
+                const matchedSub = findSubCategoryByRef(category);
+                if (matchedSub) {
+                    const parent = getSubCategoryParent(matchedSub);
+                    setSelectedCategory(parent?.slug || 'all');
+                    setSelectedSubcategory(matchedSub.name || 'all');
+                } else {
+                    setSelectedCategory('all');
+                    setSelectedSubcategory('all');
                 }
             }
         } else {
             setSelectedCategory('all');
             setSelectedSubcategory('all');
         }
-    }, [category, subCategory, searchParams, categoriesData]);
+    }, [category, subCategory, searchParams, categoriesData, findCategoryByRef, findSubCategoryByRef, getSubCategoryParent, subCategories]);
 
     const filteredProducts = useMemo(() => {
         let result = [...products];
@@ -217,13 +273,8 @@ const CatalogPage = () => {
         // Category/Subcategory Filter
         if (selectedCategory !== 'all') {
             result = result.filter(p => {
-                // Find category slug by ID, Slug, or Name
                 const pCatRef = p.category?._id || p.category?.id || p.category;
-                const categoryObj = categories.find(c =>
-                    String(c._id || c.id) === String(pCatRef) ||
-                    String(c.slug).toLowerCase() === String(pCatRef).toLowerCase() ||
-                    String(c.name).toLowerCase() === String(pCatRef).toLowerCase()
-                );
+                const categoryObj = findCategoryByRef(pCatRef);
 
                 const productCatSlug = categoryObj ? categoryObj.slug : String(pCatRef || '').toLowerCase().replace(/ /g, '-');
 
@@ -240,21 +291,16 @@ const CatalogPage = () => {
         if (selectedSubcategory !== 'all') {
             result = result.filter(p => {
                 const pSubRef = p.subcategory?.name || p.subcategory?._id || p.subcategory?.id || p.subcategory || '';
+                const subObj = findSubCategoryByRef(pSubRef);
+                const productSubName = subObj?.name || String(pSubRef);
+                const productSubSlug = normalizeSlug(subObj?.slug || productSubName);
+                const selectedSubObj = findSubCategoryByRef(selectedSubcategory);
+                const selectedSubName = selectedSubObj?.name || String(selectedSubcategory);
+                const selectedSubSlug = normalizeSlug(selectedSubObj?.slug || selectedSubName);
 
-                // Try to find subcategory object to get its name
-                const subObj = subCategories.find(s =>
-                    String(s._id || s.id) === String(pSubRef) ||
-                    String(s.name).toLowerCase() === String(pSubRef).toLowerCase()
-                );
-
-                const productSubName = subObj ? subObj.name : String(pSubRef);
-                const productSubSlug = productSubName.toLowerCase().replace(/ /g, '-');
-                const selectedSubSlug = String(selectedSubcategory).toLowerCase().replace(/ /g, '-');
-
-                // Lenient check: ID, Name, or Slug match
-                return String(pSubRef) === String(selectedSubcategory) || 
-                       productSubSlug === selectedSubSlug || 
-                       productSubName === selectedSubcategory;
+                return String(pSubRef).trim() === String(selectedSubcategory).trim() ||
+                    productSubSlug === selectedSubSlug ||
+                    normalizeSlug(productSubName) === selectedSubSlug;
             });
         }
 
@@ -333,7 +379,7 @@ const CatalogPage = () => {
         }
 
         return result;
-    }, [products, searchQuery, selectedCategory, selectedSubcategory, priceRange, selectedAvailability, selectedWeights, selectedDiscounts, sortBy]);
+    }, [products, searchQuery, selectedCategory, selectedSubcategory, priceRange, selectedAvailability, selectedWeights, selectedDiscounts, sortBy, findCategoryByRef, findSubCategoryByRef]);
 
     const handleCategoryClick = (catId) => {
         if (selectedCategory === catId) {
