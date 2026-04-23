@@ -34,6 +34,7 @@ const OrderDetailPage = () => {
     const [trackingLoading, setTrackingLoading] = useState(false);
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
     const [cancelReason, setCancelReason] = useState('');
+    const [cancelReasonError, setCancelReasonError] = useState('');
     const [showInvoice, setShowInvoice] = useState(false);
 
     useEffect(() => {
@@ -139,14 +140,29 @@ const OrderDetailPage = () => {
         && order.paymentMethod !== 'cod'
         && ['pending', 'processed', 'failed'].includes(order.refundStatus);
 
+    const validateCancelReason = () => {
+        const trimmedReason = cancelReason.trim();
+        if (trimmedReason.length < 5) {
+            setCancelReasonError('Please enter at least 5 characters for the cancellation reason.');
+            return null;
+        }
+        setCancelReasonError('');
+        return trimmedReason;
+    };
+
     // Handle cancel order
-    const handleCancelOrder = () => {
+    const handleCancelOrder = (e) => {
+        e?.preventDefault();
+        const trimmedReason = validateCancelReason();
+        if (!trimmedReason) return;
+
         cancelOrderMutation(
-            { orderId: order.id, reason: cancelReason || 'Customer requested cancellation' },
+            { orderId: order.id, reason: trimmedReason },
             {
                 onSuccess: () => {
                     setShowCancelConfirm(false);
                     setCancelReason('');
+                    setCancelReasonError('');
                     navigate('/orders');
                 }
             }
@@ -514,17 +530,30 @@ const OrderDetailPage = () => {
                             </div>
                         </div>
 
-                        <div className="mb-4">
+                        <form onSubmit={handleCancelOrder} className="space-y-4">
+                        <div>
                             <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
-                                Reason (Optional)
+                                Reason <span className="text-red-500">*</span>
                             </label>
                             <textarea
                                 value={cancelReason}
-                                onChange={(e) => setCancelReason(e.target.value)}
+                                onChange={(e) => {
+                                    setCancelReason(e.target.value);
+                                    if (cancelReasonError) {
+                                        setCancelReasonError('');
+                                    }
+                                }}
                                 placeholder="Tell us why you're cancelling..."
-                                className="w-full p-3 border border-gray-200 rounded-xl text-sm resize-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                                rows={3}
+                                className={`w-full p-3 border rounded-xl text-sm resize-none focus:ring-2 focus:border-transparent ${cancelReasonError ? 'border-red-300 focus:ring-red-500 bg-red-50/30' : 'border-gray-200 focus:ring-red-500'}`}
+                                rows={4}
+                                maxLength={240}
                             />
+                            <div className="mt-2 flex items-center justify-between gap-3">
+                                <p className={`text-[11px] ${cancelReasonError ? 'text-red-500 font-semibold' : 'text-gray-400'}`}>
+                                    {cancelReasonError || 'Please share a short reason so we can process the cancellation correctly.'}
+                                </p>
+                                <span className="text-[10px] font-bold text-gray-400">{cancelReason.trim().length}/240</span>
+                            </div>
                         </div>
 
                         {order.paymentMethod !== 'cod' && order.paymentStatus === 'paid' && (
@@ -539,13 +568,17 @@ const OrderDetailPage = () => {
 
                         <div className="flex gap-3">
                             <button
-                                onClick={() => setShowCancelConfirm(false)}
+                                type="button"
+                                onClick={() => {
+                                    setShowCancelConfirm(false);
+                                    setCancelReasonError('');
+                                }}
                                 className="flex-1 py-3 border border-gray-200 rounded-xl font-bold text-xs uppercase tracking-widest text-gray-600 hover:bg-gray-50 transition-colors"
                             >
                                 Keep Order
                             </button>
                             <button
-                                onClick={handleCancelOrder}
+                                type="submit"
                                 disabled={isCancelling}
                                 className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                             >
@@ -556,6 +589,7 @@ const OrderDetailPage = () => {
                                 )}
                             </button>
                         </div>
+                        </form>
                     </motion.div>
                 </div>
             )}

@@ -41,6 +41,8 @@ const OrderInvoice = ({ order, isOpen, onClose }) => {
     let platformFee = Number(additionalFees.platformFee || 0);
     let handlingFee = Number(additionalFees.handlingFee || 0);
     const shipping = Number(order.deliveryCharges || 0);
+    const rawShipping = Number(order.shippingQuote?.rawShippingCharge ?? order.shippingQuote?.shippingCharge ?? (order.deliveryCharges || 0));
+    const freeShippingApplied = Boolean(order.shippingQuote?.freeShippingApplied) && rawShipping > 0;
     const total = Number(order.amount || (subtotal + paymentHandlingFee + platformFee + handlingFee + shipping - discount));
 
     if (!hasSavedFeeBreakup) {
@@ -222,7 +224,14 @@ const OrderInvoice = ({ order, isOpen, onClose }) => {
                                         </div>
                                         <div className="flex justify-between items-center text-xs">
                                             <span className="font-bold text-slate-400 uppercase tracking-widest">Shipping Charges</span>
-                                            <span className="font-bold text-footerBg">₹{shipping}</span>
+                                            <span className="font-bold text-footerBg">
+                                                {freeShippingApplied ? (
+                                                    <span className="flex items-center gap-2">
+                                                        <del className="text-slate-400">₹{rawShipping}</del>
+                                                        <span className="text-emerald-600">FREE</span>
+                                                    </span>
+                                                ) : `₹${shipping}`}
+                                            </span>
                                         </div>
                                         <div className="flex justify-between items-center pt-3 border-t-2 border-slate-900">
                                             <span className="text-sm font-black text-footerBg uppercase tracking-widest">Final Payable Amount</span>
@@ -248,4 +257,5 @@ const OrderInvoice = ({ order, isOpen, onClose }) => {
 };
 
 export default OrderInvoice;
+
 

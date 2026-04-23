@@ -64,6 +64,8 @@ const orderSchema = new mongoose.Schema({
     courierId: String,
     estimatedDays: Number,
     shippingCharge: Number,
+    rawShippingCharge: Number,
+    freeShippingApplied: { type: Boolean, default: false },
     weight: Number,
     length: Number,
     breadth: Number,

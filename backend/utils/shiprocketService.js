@@ -163,15 +163,18 @@ class ShiprocketService {
     const freeAbove = Number(process.env.FREE_SHIPPING_ABOVE || 1500);
     const flatCharge = Number(process.env.FLAT_SHIPPING_CHARGE || 99);
     const safeAmount = Number(orderAmount || 0);
-    const shippingCharge = safeAmount >= freeAbove ? 0 : flatCharge;
+    const freeShippingApplied = safeAmount >= freeAbove;
+    const shippingCharge = freeShippingApplied ? 0 : flatCharge;
 
     return {
       source: 'fallback',
       reason,
       shippingCharge,
+      rawShippingCharge: flatCharge,
       courierName: shippingCharge === 0 ? 'Free Shipping Offer' : 'Standard Shipping',
       estimatedDays: null,
       serviceable: true,
+      freeShippingApplied,
       currency: 'INR'
     };
   }
@@ -428,13 +431,15 @@ class ShiprocketService {
 
       const bestCourier = companies.reduce(pickCheapest, null);
       const shippingCharge = Number(bestCourier?.rate ?? bestCourier?.freight_charge ?? 0);
+      const normalizedShippingCharge = Number.isFinite(shippingCharge) ? shippingCharge : 0;
       const estimatedDays = Number(bestCourier?.estimated_delivery_days || 0) || null;
       const freeShippingApplied = Number(orderAmount || 0) >= freeAbove;
 
       return {
         source: 'shiprocket',
         serviceable: true,
-        shippingCharge: freeShippingApplied ? 0 : (Number.isFinite(shippingCharge) ? shippingCharge : 0),
+        shippingCharge: freeShippingApplied ? 0 : normalizedShippingCharge,
+        rawShippingCharge: normalizedShippingCharge,
         courierName: bestCourier?.courier_name || null,
         courierId: bestCourier?.courier_company_id || null,
         estimatedDays,

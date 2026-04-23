@@ -51,6 +51,9 @@ const OrderDetailPage = () => {
     const [liveTracking, setLiveTracking] = useState(null);
     const [trackingLoading, setTrackingLoading] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [cancelReason, setCancelReason] = useState('');
+    const [cancelReasonError, setCancelReasonError] = useState('');
     const queryClient = useQueryClient();
     const { data: checkoutFeeConfigSetting } = useSetting('checkout_fee_config');
 
@@ -171,22 +174,39 @@ const OrderDetailPage = () => {
 
     // Cancel order handler for admin
 
-    const handleCancelOrder = async () => {
-        if (!window.confirm('Are you sure you want to cancel this order? This will notify Shiprocket and initiate a refund if applicable.')) {
-            return;
+    const getValidatedCancelReason = () => {
+        const trimmedReason = cancelReason.trim();
+        if (trimmedReason.length < 5) {
+            setCancelReasonError('Please enter at least 5 characters for the cancellation reason.');
+            return null;
         }
+        setCancelReasonError('');
+        return trimmedReason;
+    };
+
+    const closeCancelModal = () => {
+        setShowCancelModal(false);
+        setCancelReason('');
+        setCancelReasonError('');
+    };
+
+    const handleCancelOrder = async (e) => {
+        e?.preventDefault();
+        const validatedReason = getValidatedCancelReason();
+        if (!validatedReason) return;
 
         setIsCancelling(true);
         try {
             const res = await fetch(`${API_URL}/orders/${order.id}/cancel`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reason: 'Cancelled by admin' })
+                body: JSON.stringify({ reason: validatedReason })
             });
 
             if (res.ok) {
                 const data = await res.json();
                 setStatus('Cancelled');
+                closeCancelModal();
                 queryClient.invalidateQueries({ queryKey: ['order', id] });
                 queryClient.invalidateQueries({ queryKey: ['orders'] });
                 queryClient.invalidateQueries({ queryKey: ['all-orders'] });
@@ -250,6 +270,8 @@ const OrderDetailPage = () => {
     const derivedSubtotal = Number(order.subtotal ?? computedSubtotal);
     const derivedDiscount = Number(order.discount || 0);
     const derivedShipping = Number(order.deliveryCharges || 0);
+    const derivedRawShipping = Number(order.shippingQuote?.rawShippingCharge ?? order.shippingQuote?.shippingCharge ?? (order.deliveryCharges || 0));
+    const freeShippingApplied = Boolean(order.shippingQuote?.freeShippingApplied) && derivedRawShipping > 0;
     const derivedAdditionalFees = order.additionalFees || {};
     const hasSavedFeeBreakup =
         derivedAdditionalFees.paymentHandlingFee !== undefined
@@ -489,7 +511,12 @@ const OrderDetailPage = () => {
                             <div className="flex justify-between text-gray-500">
                                 <span className="font-medium">Shipping Charges</span>
                                 <span className="font-bold text-footerBg">
-                                    {(derivedShipping === 0) ? <span className="text-emerald-600">Free</span> : `₹${derivedShipping}`}
+                                    {freeShippingApplied ? (
+                                        <span className="flex items-center gap-2">
+                                            <del className="text-gray-400 font-medium">₹{derivedRawShipping.toLocaleString()}</del>
+                                            <span className="text-emerald-600">Free</span>
+                                        </span>
+                                    ) : (derivedShipping === 0) ? <span className="text-emerald-600">Free</span> : `₹${derivedShipping}`}
                                 </span>
                             </div>
                             <div className="border-t border-gray-100 pt-3 flex justify-between items-center text-sm">
@@ -543,16 +570,84 @@ const OrderDetailPage = () => {
                     {/* Cancel Order Button (for admin) */}
                     {canCancel && (
                         <button
-                            onClick={handleCancelOrder}
+                            onClick={() => setShowCancelModal(true)}
                             disabled={isCancelling}
                             className="w-full flex items-center justify-center gap-2 bg-red-50 text-red-600 border border-red-200 py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-red-100 transition-all disabled:opacity-50"
                         >
                             {isCancelling ? (
                                 <><RefreshCw size={14} className="animate-spin" /> Cancelling...</>
-                            ) : (
+                    ) : (
                                 <><XCircle size={16} /> Cancel Order</>
                             )}
                         </button>
+                    )}
+
+                    {showCancelModal && (
+                        <div className="fixed inset-0 z-[90] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+                            <div className="w-full max-w-lg rounded-3xl bg-white border border-gray-100 shadow-2xl p-6">
+                                <div className="flex items-start gap-3 mb-5">
+                                    <div className="w-12 h-12 rounded-2xl bg-red-100 flex items-center justify-center shrink-0">
+                                        <XCircle size={22} className="text-red-600" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-black text-footerBg">Cancel This Order?</h3>
+                                        <p className="text-sm text-gray-500 mt-1">
+                                            Please provide a clear reason. This will be stored on the order and used for refund and support handling.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <form onSubmit={handleCancelOrder} className="space-y-4">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                                            Cancellation Reason <span className="text-red-500">*</span>
+                                        </label>
+                                        <textarea
+                                            value={cancelReason}
+                                            onChange={(e) => {
+                                                setCancelReason(e.target.value);
+                                                if (cancelReasonError) setCancelReasonError('');
+                                            }}
+                                            rows={4}
+                                            maxLength={240}
+                                            placeholder="Example: Customer requested cancellation due to wrong address or duplicate order."
+                                            className={`w-full rounded-2xl border px-4 py-3 text-sm resize-none outline-none focus:ring-2 ${cancelReasonError ? 'border-red-300 bg-red-50/40 focus:ring-red-200' : 'border-gray-200 focus:ring-red-100'}`}
+                                        />
+                                        <div className="mt-2 flex items-center justify-between gap-3">
+                                            <p className={`text-xs ${cancelReasonError ? 'text-red-500 font-semibold' : 'text-gray-400'}`}>
+                                                {cancelReasonError || 'Minimum 5 characters required.'}
+                                            </p>
+                                            <span className="text-[10px] font-bold text-gray-400">{cancelReason.trim().length}/240</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-xs text-amber-700">
+                                        Cancelling will notify Shiprocket when available and initiate refund handling for paid online orders.
+                                    </div>
+
+                                    <div className="flex gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={closeCancelModal}
+                                            className="flex-1 rounded-2xl border border-gray-200 px-4 py-3 text-xs font-bold uppercase tracking-widest text-gray-600 hover:bg-gray-50 transition-colors"
+                                        >
+                                            Back
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={isCancelling}
+                                            className="flex-1 rounded-2xl bg-red-600 px-4 py-3 text-xs font-bold uppercase tracking-widest text-white hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                                        >
+                                            {isCancelling ? (
+                                                <><RefreshCw size={14} className="animate-spin" /> Cancelling...</>
+                                            ) : (
+                                                <><XCircle size={14} /> Confirm Cancel</>
+                                            )}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
                     )}
 
                     {/* 2. Customer & Delivery Details */}
@@ -736,4 +831,5 @@ const OrderDetailPage = () => {
 };
 
 export default OrderDetailPage;
+
 

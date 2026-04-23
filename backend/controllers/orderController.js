@@ -140,7 +140,7 @@ export const getOrderStats = async (req, res) => {
 // @access  Public (should be authenticated in production)
 export const cancelOrder = asyncHandler(async (req, res) => {
   const { orderId } = req.params;
-  const { reason } = req.body;
+  const normalizedReason = String(req.body?.reason || '').trim();
 
   try {
     // Find order by custom ID or MongoDB _id (avoid cast error on non-ObjectId)
@@ -151,6 +151,12 @@ export const cancelOrder = asyncHandler(async (req, res) => {
 
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
+    }
+
+    if (normalizedReason.length < 5) {
+      return res.status(400).json({
+        message: 'Cancellation reason is required and must be at least 5 characters long'
+      });
     }
 
     // Check if order can be cancelled (allowed until it reaches Out for Delivery)
@@ -193,7 +199,7 @@ export const cancelOrder = asyncHandler(async (req, res) => {
           speed: 'normal', // 'normal' (5-7 days) or 'optimum' (instant if eligible)
           notes: {
             order_id: order.id,
-            reason: reason || 'Customer requested cancellation'
+            reason: normalizedReason
           }
         });
 
@@ -213,7 +219,7 @@ export const cancelOrder = asyncHandler(async (req, res) => {
     // 3. Update order in database
     order.status = 'Cancelled';
     order.cancelledAt = new Date();
-    order.cancellationReason = reason || 'Customer requested cancellation';
+    order.cancellationReason = normalizedReason;
     order.refundId = refundId;
     order.refundStatus = refundStatus;
     order.refundAmount = refundInitiated ? order.amount : null;
@@ -304,6 +310,12 @@ export const updateOrder = asyncHandler(async (req, res) => {
       return res.status(404).json({ message: 'Order not found' });
     }
 
+    if (normalizedReason.length < 5) {
+      return res.status(400).json({
+        message: 'Cancellation reason is required and must be at least 5 characters long'
+      });
+    }
+
     const oldStatus = order.status;
 
     // Update fields if provided
@@ -338,3 +350,4 @@ export const updateOrder = asyncHandler(async (req, res) => {
     res.status(500).json({ message: 'Failed to update order', error: error.message });
   }
 });
+

@@ -42,6 +42,8 @@ export const InvoiceDisplay = React.forwardRef(
     let platformFee = Number(additionalFees.platformFee || 0);
     let handlingFee = Number(additionalFees.handlingFee || 0);
     const shipping = Number(order.deliveryCharges || 0);
+    const rawShipping = Number(order.shippingQuote?.rawShippingCharge ?? order.shippingQuote?.shippingCharge ?? (order.deliveryCharges || 0));
+    const freeShippingApplied = Boolean(order.shippingQuote?.freeShippingApplied) && rawShipping > 0;
     const discount = Number(order.discount || 0);
     const totalAmount = Number(order.amount || (subtotal + paymentHandlingFee + platformFee + handlingFee + shipping - discount));
 
@@ -387,12 +389,14 @@ export const InvoiceDisplay = React.forwardRef(
               <tr>
                 <td colSpan="2"><b>Shipping Charges</b></td>
                 <td className="text-center">1</td>
-                <td className="text-right">{format(shipping)}</td>
+                <td className="text-right">{format(freeShippingApplied ? rawShipping : shipping)}</td>
                 <td className="text-right">0.00</td>
                 <td className="text-right">{format(shipping)}</td>
                 <td className="text-right">0.00</td>
                 <td className="text-right">0.00</td>
-                <td className="text-right"><b>{format(shipping)}</b></td>
+                <td className="text-right">
+                  <b>{freeShippingApplied ? `${format(rawShipping)} -> FREE` : format(shipping)}</b>
+                </td>
               </tr>
               <tr style={{ background: "#f5f5f5", fontWeight: "bold" }}>
                 <td colSpan="2">TOTAL QTY: {totalQty}</td>

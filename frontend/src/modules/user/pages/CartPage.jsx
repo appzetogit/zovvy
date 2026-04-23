@@ -51,6 +51,7 @@ const DUMMY_PRODUCTS = [
 import useCartStore from '../../../store/useCartStore';
 import useUserStore from '../../../store/useUserStore';
 import { useProducts } from '../../../hooks/useProducts';
+import { enrichCartItems } from '../../../utils/cartItems';
 
 
 const CartPage = () => {
@@ -63,7 +64,7 @@ const CartPage = () => {
 
     // Zustand Stores
     const { getCart, removeFromCart, updateCartQty, addToCart } = useCartStore();
-    const { getSaveForLater, saveForLater, addToSaved: saveForLaterAction, removeFromSaved } = useUserStore();
+    const { getSaveForLater, addToSaved: saveForLaterAction, removeFromSaved } = useUserStore();
 
     // Data Hooks
     const { data: products = [] } = useProducts();
@@ -86,7 +87,7 @@ const CartPage = () => {
     // Helper functions for CartPage logic
     const moveToSaveForLater = (userId, packId) => {
         // Find item qty from cart
-        const cartItem = getCart(userId).find(i => i.packId === packId);
+        const cartItem = getCart(userId).find(i => String(i.packId) === String(packId));
         if (cartItem) {
             saveForLaterAction(userId, packId, cartItem.qty);
             removeFromCart(userId, packId);
@@ -95,26 +96,11 @@ const CartPage = () => {
 
     const moveToCartFromSaved = (userId, packId) => {
         // Find item qty from saved
-        const savedItem = saveForLater(userId).find(i => String(i.packId) === String(packId));
+        const savedItem = getSaveForLater(userId).find(i => String(i.packId) === String(packId));
         if (savedItem) {
             addToCart(userId, packId, savedItem.qty);
             removeFromSaved(userId, packId);
         }
-    };
-
-    // Legacy helpers to resolve product data
-    const getVariantById = (variantId) => {
-        // Loop products
-        for (let p of products) {
-            const v = p.variants?.find(v => v.id === variantId);
-            if (v) return { ...v, product: p };
-        }
-        return null;
-    };
-
-    const getPackById = (packId) => {
-        // Assuming packs are variants or handled similarly
-        return getVariantById(packId);
     };
 
 
@@ -141,57 +127,10 @@ const CartPage = () => {
     };
 
     const cartItems = getCart(user?.id);
-
-    // Enrich cart items with product details
-    const enrichedCart = cartItems.map(item => {
-        // Try to get variant first
-        const variantData = getVariantById(item.packId);
-        if (variantData) {
-            return {
-                ...item,
-                id: variantData.id,
-                name: variantData.product.name,
-                weight: variantData.weight,
-                price: variantData.price,
-                mrp: variantData.mrp,
-                image: variantData.product.image,
-                category: variantData.product.category,
-                productId: variantData.product.id,
-                slug: variantData.product.slug,
-                stock: variantData.stock || 0
-            };
-        }
-
-        // Fallback to legacy pack
-        const pack = getPackById(item.packId);
-        if (pack) {
-            return { ...item, ...pack };
-        }
-        return null;
-    }).filter(Boolean);
+    const enrichedCart = enrichCartItems(cartItems, products);
 
     const savedItems = user ? getSaveForLater(user.id) : [];
-    const enrichedSaved = savedItems.map(item => {
-        const variantData = getVariantById(item.packId);
-        if (variantData) {
-            return {
-                ...item,
-                id: variantData.id,
-                name: variantData.product.name,
-                weight: variantData.weight,
-                price: variantData.price,
-                mrp: variantData.mrp,
-                image: variantData.product.image,
-                category: variantData.product.category,
-                productId: variantData.product.id,
-                slug: variantData.product.slug,
-                stock: variantData.stock || 0
-            };
-        }
-        const pack = getPackById(item.packId);
-        if (pack) return { ...item, ...pack };
-        return null;
-    }).filter(Boolean);
+    const enrichedSaved = enrichCartItems(savedItems, products);
 
     const subtotal = enrichedCart.reduce((acc, item) => acc + (item.price || 0) * item.qty, 0);
 
@@ -224,7 +163,7 @@ const CartPage = () => {
                 <div className="grid lg:grid-cols-3 gap-12">
                     <div className="lg:col-span-2 space-y-2 md:space-y-6">
                         {enrichedCart.map((item) => (
-                            <div key={item.id} className="bg-white p-2 md:p-6 rounded-lg md:rounded-2xl border border-gray-100 flex gap-2 md:gap-6 shadow-sm group">
+                            <div key={item.packId} className="bg-white p-2 md:p-6 rounded-lg md:rounded-2xl border border-gray-100 flex gap-2 md:gap-6 shadow-sm group">
                                 <div
                                     onClick={() => navigate(`/product/${item.slug || item.productId || item.id}`)}
                                     className="w-16 h-16 md:w-24 md:h-24 rounded-md md:rounded-xl overflow-hidden bg-gray-50 shrink-0 cursor-pointer"
@@ -249,7 +188,7 @@ const CartPage = () => {
                                         </div>
                                         <div className="flex items-center gap-1">
                                             <button
-                                                onClick={() => removeFromCart(user?.id, item.id)}
+                                                onClick={() => removeFromCart(user?.id, item.packId)}
                                                 className="p-1.5 rounded-full border border-gray-200 bg-white text-black shadow-sm hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors"
                                             >
                                                 <Trash2 size={14} />
@@ -259,7 +198,7 @@ const CartPage = () => {
                                     <div className="flex justify-between items-center mt-1 md:mt-4">
                                         <div className="flex items-center border border-gray-100 rounded-md overflow-hidden bg-gray-50/50">
                                             <button
-                                                onClick={() => updateCartQty(user?.id, item.id, item.qty - 1)}
+                                                onClick={() => updateCartQty(user?.id, item.packId, item.qty - 1)}
                                                 className="p-1 md:p-2 hover:bg-white transition-colors"
                                             >
                                                 <Minus size={10} />
@@ -272,7 +211,7 @@ const CartPage = () => {
                                                         toast.error(`Only ${stockLimit} items available in stock`);
                                                         return;
                                                     }
-                                                    updateCartQty(user?.id, item.id, item.qty + 1);
+                                                    updateCartQty(user?.id, item.packId, item.qty + 1);
                                                 }}
                                                 className={`p-1 md:p-2 transition-colors ${item.qty >= (item.stock || 0) ? 'text-gray-200 cursor-not-allowed' : 'hover:bg-white'}`}
                                             >
@@ -336,7 +275,7 @@ const CartPage = () => {
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                             {enrichedSaved.map((item) => (
-                                <div key={item.id} className="bg-white p-3 rounded-2xl border border-gray-50 flex gap-3 shadow-sm hover:shadow-md transition-all h-full">
+                                <div key={item.packId} className="bg-white p-3 rounded-2xl border border-gray-50 flex gap-3 shadow-sm hover:shadow-md transition-all h-full">
                                     <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-50 shrink-0">
                                         <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                                     </div>
@@ -350,13 +289,13 @@ const CartPage = () => {
                                         </div>
                                         <div className="flex items-center gap-2 mt-2">
                                             <button
-                                                onClick={() => moveToCartFromSaved(user.id, item.id)}
+                                                onClick={() => moveToCartFromSaved(user.id, item.packId)}
                                                 className="flex-1 text-[9px] font-black text-white bg-footerBg py-1.5 rounded-lg hover:bg-primary transition-all whitespace-nowrap uppercase tracking-widest"
                                             >
                                                 Move to Cart
                                             </button>
                                             <button
-                                                onClick={() => removeFromSaved(user.id, item.id)}
+                                                onClick={() => removeFromSaved(user.id, item.packId)}
                                                 className="w-8 h-8 flex items-center justify-center text-gray-300 hover:text-red-500 transition-colors border border-gray-100 rounded-lg hover:bg-red-50"
                                             >
                                                 <Trash2 size={12} />

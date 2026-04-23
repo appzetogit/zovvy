@@ -17,6 +17,7 @@ import { useActiveCoupons } from '../../../hooks/useCoupons';
 import { useValidateReferral } from '../../../hooks/useReferrals';
 import { useSetting } from '../../../hooks/useSettings';
 import { API_BASE_URL } from '@/lib/apiUrl';
+import { enrichCartItems } from '../../../utils/cartItems';
 
 const FULL_NAME_REGEX = /^[A-Za-z][A-Za-z\s.'-]{1,119}$/;
 const CITY_STATE_REGEX = /^[A-Za-z][A-Za-z\s.'-]{1,79}$/;
@@ -57,18 +58,6 @@ const CheckoutPage = () => {
         maximumFractionDigits: 0
     }).format(Number(amount || 0));
 
-    // Helpers
-    const getProductById = (pid) => products.find(p => p.id === pid);
-    // Legacy support for getPackById, getVariantById - mapped to products
-    const getVariantById = (variantId) => {
-        for (let p of products) {
-            const v = p.variants?.find(v => v.id === variantId);
-            if (v) return { ...v, product: p };
-        }
-        return null;
-    };
-    const getPackById = (packId) => products.find(p => p.id === packId);
-
     const validateCoupon = (userId, code, orderValue, cartItems) => {
         // First check actual coupons
         const coupon = activeCoupons.find(c => c.code === code);
@@ -99,40 +88,7 @@ const CheckoutPage = () => {
     const cartItems = directBuyItem
         ? [directBuyItem]
         : getCart(user?.id);
-
-    const enrichedCart = cartItems.map(item => {
-        // Try to get variant first
-        const variantData = getVariantById(item.packId);
-        if (variantData) {
-            return {
-                ...item,
-                id: variantData.id,
-                name: variantData.product.name,
-                weight: variantData.weight,
-                length: variantData.length,
-                breadth: variantData.breadth,
-                height: variantData.height,
-                price: variantData.price,
-                mrp: variantData.mrp,
-                image: variantData.product.image,
-                category: variantData.product.category,
-                subcategory: variantData.product.subcategory,
-                productId: variantData.product.id,
-                stock: variantData.stock || 0
-            };
-        }
-
-        // Fallback to legacy pack
-        const pack = getPackById(item.packId);
-        if (pack) {
-            return {
-                ...item,
-                ...pack,
-                stock: pack.stock?.quantity || pack.stock || 0
-            };
-        }
-        return null;
-    }).filter(Boolean);
+    const enrichedCart = enrichCartItems(cartItems, products);
 
     const subtotal = enrichedCart.reduce((acc, item) => acc + (item.price || 0) * item.qty, 0);
     const mrpTotal = enrichedCart.reduce((acc, item) => {
@@ -222,6 +178,7 @@ const CheckoutPage = () => {
     const [shippingQuote, setShippingQuote] = useState({
         loading: false,
         shippingCharge: 0,
+        rawShippingCharge: 0,
         source: 'fallback',
         courierName: null,
         courierId: null,
@@ -292,6 +249,7 @@ const CheckoutPage = () => {
                 ...prev,
                 loading: false,
                 shippingCharge: 0,
+                rawShippingCharge: 0,
                 source: 'fallback',
                 courierName: null,
                 courierId: null,
@@ -336,6 +294,7 @@ const CheckoutPage = () => {
                     setShippingQuote({
                         loading: false,
                         shippingCharge: Number(data.shippingCharge || 0),
+                        rawShippingCharge: Number(data.rawShippingCharge ?? (data.shippingCharge || 0)),
                         source: data.source || 'fallback',
                         courierName: data.courierName || null,
                         courierId: data.courierId ? String(data.courierId) : null,
@@ -370,6 +329,7 @@ const CheckoutPage = () => {
     }, [formData.pincode, paymentMethod, subtotal, couponDiscount, shippingItemsSignature]);
 
     const shippingCharge = Number(shippingQuote.shippingCharge || 0);
+    const rawShippingCharge = Number(shippingQuote.rawShippingCharge ?? (shippingQuote.shippingCharge || 0));
     const parseFeeAmount = (value) => {
         const amount = Number(value);
         return Number.isFinite(amount) && amount > 0 ? amount : 0;
@@ -551,6 +511,8 @@ const CheckoutPage = () => {
                 courierId: shippingQuote.courierId,
                 estimatedDays: shippingQuote.estimatedDays,
                 shippingCharge,
+                rawShippingCharge,
+                freeShippingApplied: Boolean(shippingQuote.freeShippingApplied),
                 weight: shippingQuote.weight,
                 length: shippingQuote.length,
                 breadth: shippingQuote.breadth,
@@ -960,9 +922,17 @@ const CheckoutPage = () => {
 
                             <h2 className="text-lg md:text-xl font-black text-footerBg uppercase tracking-tight mb-4 md:mb-6">Order Summary</h2>
 
-                            <div className="max-h-48 md:max-h-60 overflow-y-auto pr-2 space-y-3 md:space-y-4 mb-4 md:mb-6 custom-scrollbar">
+                            <div className="mb-2 flex items-center justify-between text-[11px] md:text-xs font-bold uppercase tracking-[0.16em] text-gray-400">
+                                <span>Products</span>
+                                <span>{enrichedCart.length} item{enrichedCart.length === 1 ? '' : 's'}</span>
+                            </div>
+
+                            <div
+                                className="max-h-[45vh] md:max-h-[24rem] overflow-y-auto overscroll-contain pr-2 space-y-3 md:space-y-4 mb-4 md:mb-6 custom-scrollbar rounded-xl border border-gray-100 bg-gray-50/40 p-3 md:p-4"
+                                style={{ scrollbarGutter: 'stable' }}
+                            >
                                 {enrichedCart.map((item) => (
-                                    <div key={item.id} className="flex gap-3 md:gap-4 border-b border-gray-50 pb-3 last:border-0 last:pb-0">
+                                    <div key={item.packId} className="flex gap-3 md:gap-4 border-b border-gray-50 pb-3 last:border-0 last:pb-0">
                                         <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-50 rounded-lg overflow-hidden shrink-0">
                                             <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                                         </div>
@@ -1004,7 +974,18 @@ const CheckoutPage = () => {
                                         <div className="flex justify-between">
                                             <span>Delivery Fee</span>
                                             <span className={`${shippingCharge > 0 ? 'text-footerBg' : 'text-emerald-500'} font-semibold`}>
-                                                {shippingQuote.loading ? 'Calculating...' : shippingCharge > 0 ? formatINR(shippingCharge) : 'FREE'}
+                                                {shippingQuote.loading ? (
+                                                    'Calculating...'
+                                                ) : shippingQuote.freeShippingApplied && rawShippingCharge > 0 ? (
+                                                    <span className="flex items-center gap-2">
+                                                        <del className="text-gray-400 font-medium">{formatINR(rawShippingCharge)}</del>
+                                                        <span className="text-emerald-500">FREE</span>
+                                                    </span>
+                                                ) : shippingCharge > 0 ? (
+                                                    formatINR(shippingCharge)
+                                                ) : (
+                                                    'FREE'
+                                                )}
                                             </span>
                                         </div>
                                     </div>
@@ -1019,7 +1000,12 @@ const CheckoutPage = () => {
                                                     <div className="flex justify-between gap-4">
                                                         <span>Delivery charge</span>
                                                         <span className="font-semibold text-footerBg">
-                                                            {shippingQuote.freeShippingApplied ? 'FREE' : formatINR(shippingQuote.shippingCharge)}
+                                                            {shippingQuote.freeShippingApplied && rawShippingCharge > 0 ? (
+                                                                <span className="flex items-center gap-2">
+                                                                    <del className="text-gray-400 font-medium">{formatINR(rawShippingCharge)}</del>
+                                                                    <span className="text-emerald-500">FREE</span>
+                                                                </span>
+                                                            ) : shippingQuote.freeShippingApplied ? 'FREE' : formatINR(shippingQuote.shippingCharge)}
                                                         </span>
                                                     </div>
                                                     {(shippingQuote.estimatedDays || shippingQuote.weight) && (
