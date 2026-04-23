@@ -12,16 +12,8 @@ import { AdminTable, AdminTableHeader, AdminTableHead, AdminTableBody, AdminTabl
 import { useReferrals, useCreateReferral, useUpdateReferral, useDeleteReferral, useAddPayout } from '../../../hooks/useReferrals';
 
 const InfluencerReferralPage = () => {
-    const { data: serverReferrals = [], isLoading } = useReferrals();
-
-    // Fallback Dummy Data
-    const dummyInfluencers = [
-        { _id: '1', name: 'Rahul Sharma', platform: 'Instagram', code: 'RAHULFIT20', type: 'percentage', value: 20, commissionRate: 10, usageCount: 145, totalSales: 285000, totalPaid: 15000, active: true, validTo: '2026-12-31' },
-        { _id: '2', name: 'Priya Verma', platform: 'Youtube', code: 'PRIYAFRY15', type: 'percentage', value: 15, commissionRate: 8, usageCount: 89, totalSales: 154000, totalPaid: 5000, active: true, validTo: '2026-06-30' },
-        { _id: '3', name: 'Vikram Singh', platform: 'Instagram', code: 'VIKDRY10', type: 'percentage', value: 10, commissionRate: 5, usageCount: 34, totalSales: 42000, totalPaid: 0, active: false, validTo: '2025-12-31' },
-    ];
-
-    const influencers = serverReferrals.length > 0 ? serverReferrals : dummyInfluencers;
+    const { data: serverReferrals = [], isLoading, isError, error } = useReferrals();
+    const influencers = serverReferrals;
 
     const createReferralMutation = useCreateReferral();
     const updateReferralMutation = useUpdateReferral();
@@ -220,6 +212,20 @@ const InfluencerReferralPage = () => {
 
                 {/* Table Area */}
                 <div className="min-h-[400px]">
+                    {isLoading && (
+                        <div className="flex flex-col items-center justify-center py-24 text-gray-400">
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] animate-pulse">Loading referral campaigns...</p>
+                        </div>
+                    )}
+                    {isError && (
+                        <div className="flex flex-col items-center justify-center py-24 text-red-400">
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em]">Failed to load referrals</p>
+                            <p className="mt-3 text-[10px] font-bold normal-case tracking-normal text-red-300">
+                                {error?.message || 'Please recheck your admin session and API connection.'}
+                            </p>
+                        </div>
+                    )}
+                    {!isLoading && !isError && (
                     <AdminTable>
                         <AdminTableHeader>
                             <AdminTableHead>Influencer</AdminTableHead>
@@ -303,10 +309,14 @@ const InfluencerReferralPage = () => {
                             ))}
                         </AdminTableBody>
                     </AdminTable>
+                    )}
                     {filteredList.length === 0 && (
+                        !isLoading && !isError &&
                         <div className="flex flex-col items-center justify-center py-24 text-gray-300">
                             <Search size={48} className="mb-4 opacity-5" />
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em]">No partners found matching search</p>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em]">
+                                {searchTerm ? 'No partners found matching search' : 'No referral campaigns created yet'}
+                            </p>
                         </div>
                     )}
                 </div>

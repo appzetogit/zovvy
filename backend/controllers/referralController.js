@@ -1,5 +1,15 @@
 import Referral from '../models/Referral.js';
 import asyncHandler from 'express-async-handler';
+import mongoose from 'mongoose';
+
+const findReferralByIdOrThrow = async (id, res) => {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        res.status(400);
+        throw new Error('Invalid referral ID');
+    }
+
+    return Referral.findById(id);
+};
 
 // @desc    Create a new referral
 // @route   POST /api/referrals
@@ -46,7 +56,7 @@ const getReferrals = asyncHandler(async (req, res) => {
 // @route   GET /api/referrals/:id
 // @access  Private/Admin
 const getReferralById = asyncHandler(async (req, res) => {
-    const referral = await Referral.findById(req.params.id);
+    const referral = await findReferralByIdOrThrow(req.params.id, res);
 
     if (referral) {
         res.json(referral);
@@ -60,7 +70,7 @@ const getReferralById = asyncHandler(async (req, res) => {
 // @route   PUT /api/referrals/:id
 // @access  Private/Admin
 const updateReferral = asyncHandler(async (req, res) => {
-    const referral = await Referral.findById(req.params.id);
+    const referral = await findReferralByIdOrThrow(req.params.id, res);
 
     if (referral) {
         referral.name = req.body.name || referral.name;
@@ -87,7 +97,7 @@ const updateReferral = asyncHandler(async (req, res) => {
 // @route   DELETE /api/referrals/:id
 // @access  Private/Admin
 const deleteReferral = asyncHandler(async (req, res) => {
-    const referral = await Referral.findById(req.params.id);
+    const referral = await findReferralByIdOrThrow(req.params.id, res);
 
     if (referral) {
         await referral.deleteOne();
@@ -103,7 +113,7 @@ const deleteReferral = asyncHandler(async (req, res) => {
 // @access  Private/Admin
 const addPayout = asyncHandler(async (req, res) => {
     const { amount } = req.body;
-    const referral = await Referral.findById(req.params.id);
+    const referral = await findReferralByIdOrThrow(req.params.id, res);
 
     if (referral) {
         referral.totalPaid = (referral.totalPaid || 0) + Number(amount);
@@ -155,7 +165,7 @@ const validateReferral = asyncHandler(async (req, res) => {
 // @route   GET /api/referrals/:id/orders
 // @access  Private/Admin
 const getReferralOrders = asyncHandler(async (req, res) => {
-    const referral = await Referral.findById(req.params.id);
+    const referral = await findReferralByIdOrThrow(req.params.id, res);
 
     if (!referral) {
         res.status(404);

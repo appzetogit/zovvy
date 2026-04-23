@@ -2,18 +2,20 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { API_BASE_URL } from '@/lib/apiUrl';
 
-// Helper to check if user is authenticated
-const isAuthenticated = () => {
+// Referrals admin APIs support either bearer token or cookie auth.
+// We should not require both localStorage keys to exist before querying.
+const hasStoredSession = () => {
     try {
         const user = localStorage.getItem('farmlyf_current_user');
         const token = localStorage.getItem('farmlyf_token');
-        return !!(user && token);
+        return !!(user || token);
     } catch {
         return false;
     }
 };
 
 const API_URL = API_BASE_URL + '/referrals';
+const isValidObjectId = (id) => /^[a-f\d]{24}$/i.test(String(id || ''));
 
 // Helper function to handle fetch calls
 const fetchData = async (url, options = {}) => {
@@ -72,7 +74,7 @@ export const useReferrals = () => {
     return useQuery({
         queryKey: ['referrals'],
         queryFn: fetchReferrals,
-        enabled: isAuthenticated() // Only fetch if authenticated
+        enabled: hasStoredSession()
     });
 };
 
@@ -80,7 +82,7 @@ export const useReferral = (id) => {
     return useQuery({
         queryKey: ['referral', id],
         queryFn: () => fetchData(`${API_URL}/${id}`),
-        enabled: !!id,
+        enabled: isValidObjectId(id),
     });
 };
 
@@ -161,6 +163,6 @@ export const useReferralOrders = (id) => {
     return useQuery({
         queryKey: ['referral', id, 'orders'],
         queryFn: () => fetchData(`${API_URL}/${id}/orders`),
-        enabled: !!id,
+        enabled: isValidObjectId(id),
     });
 };
