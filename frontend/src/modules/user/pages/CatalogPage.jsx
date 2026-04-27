@@ -142,6 +142,10 @@ const CatalogPage = () => {
         const refString = String(ref).trim();
         const refSlug = normalizeSlug(refString);
 
+        if (refSlug === 'combos-packs' || refString === 'virtual-combos' || refSlug === 'combos-&-packs') {
+            return { id: 'combos-packs', slug: 'combos-packs', name: 'Combos & Packs', _id: 'virtual-combos' };
+        }
+
         return categories.find((cat) => {
             const candidateRefs = [cat?._id, cat?.id, cat?.slug, cat?.name].filter(Boolean);
             return candidateRefs.some((candidate) => {
@@ -156,14 +160,29 @@ const CatalogPage = () => {
         const refString = String(ref).trim();
         const refSlug = normalizeSlug(refString);
 
-        return subCategories.find((sub) => {
+        const sub = subCategories.find((sub) => {
             const candidateRefs = [sub?._id, sub?.id, sub?.slug, sub?.name].filter(Boolean);
             return candidateRefs.some((candidate) => {
                 const candidateString = String(candidate).trim();
                 return candidateString === refString || normalizeSlug(candidateString) === refSlug;
             });
-        }) || null;
-    }, [subCategories]);
+        });
+
+        if (sub) return sub;
+
+        // Try combo categories
+        const comboSub = comboCategories.find((cat) => {
+            const candidateRefs = [cat?._id, cat?.id, cat?.slug, cat?.name].filter(Boolean);
+            return candidateRefs.some((candidate) => {
+                const candidateString = String(candidate).trim();
+                return candidateString === refString || normalizeSlug(candidateString) === refSlug;
+            });
+        });
+
+        if (comboSub) return { ...comboSub, isCombo: true, parent: 'virtual-combos' };
+
+        return null;
+    }, [subCategories, comboCategories]);
 
     const getSubCategoryParent = React.useCallback((sub) => {
         if (!sub) return null;
@@ -258,6 +277,12 @@ const CatalogPage = () => {
         }
     }, [category, subCategory, searchParams, categoriesData, findCategoryByRef, findSubCategoryByRef, getSubCategoryParent, subCategories]);
 
+    const activeComboCategoryNames = useMemo(() => {
+        return comboCategories
+            .filter(c => c.status === 'Active')
+            .map(c => (c.name || '').toLowerCase().trim());
+    }, [comboCategories]);
+
     const filteredProducts = useMemo(() => {
         let result = [...products];
 
@@ -280,9 +305,14 @@ const CatalogPage = () => {
 
                 // Special case for virtual Combos & Packs
                 if (selectedCategory === 'combos-packs') {
-                    const isExplicitCombo = productCatSlug === 'combos-packs';
+                    const isExplicitCombo = productCatSlug === 'combos-packs' || productCatSlug === 'combos-&-packs';
                     const hasComboContents = p.contents && p.contents.length > 0;
-                    if (isExplicitCombo || hasComboContents) return true;
+                    const isComboType = p.type === 'combo';
+                    
+                    const subcatName = (p.subcategory?.name || p.subcategory || '').toLowerCase().trim();
+                    const isComboSubcat = activeComboCategoryNames.includes(subcatName);
+
+                    if (isExplicitCombo || hasComboContents || isComboType || isComboSubcat) return true;
                 }
 
                 return productCatSlug === selectedCategory;
