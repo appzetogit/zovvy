@@ -58,7 +58,11 @@ const CouponFormPage = () => {
         }
     });
 
-    const { data: usersResponse = {} } = useQuery({
+    const {
+        data: usersResponse = {},
+        isLoading: isUsersLoading,
+        isError: isUsersError
+    } = useQuery({
         queryKey: ['users', 'coupon-targeting'],
         queryFn: async () => {
             const limit = 200;
@@ -250,26 +254,61 @@ const CouponFormPage = () => {
         setFormData({ ...formData, code: result });
     };
 
+    const selectedAudienceUsers = useMemo(() => {
+        const selectedUserIds = new Set(formData.selectedUsers || []);
+
+        return users.filter((user) => selectedUserIds.has(user.id || user._id));
+    }, [formData.selectedUsers, users]);
+
     const filteredAudienceUsers = useMemo(() => {
         const searchValue = audienceSearchTerm.trim().toLowerCase();
 
-        if (!searchValue) return users;
+        const getMatchScore = (user) => {
+            if (!searchValue) return 1;
 
-        return users.filter((user) => {
-            const searchableValue = [
-                user?.name,
-                user?.email,
-                user?.phone,
-                user?.id,
-                user?._id
-            ]
-                .filter(Boolean)
-                .join(' ')
-                .toLowerCase();
+            const normalizedName = String(user?.name || '').trim().toLowerCase();
+            const normalizedEmail = String(user?.email || '').trim().toLowerCase();
+            const normalizedEmailUser = normalizedEmail.split('@')[0] || '';
+            const normalizedPhone = String(user?.phone || '').trim().toLowerCase();
+            const normalizedId = String(user?.id || user?._id || '').trim().toLowerCase();
+            const nameParts = normalizedName.split(/\s+/).filter(Boolean);
 
-            return searchableValue.includes(searchValue);
-        });
-    }, [audienceSearchTerm, users]);
+            if (normalizedName === searchValue) return 100;
+            if (nameParts.some((part) => part === searchValue)) return 95;
+            if (normalizedName.startsWith(searchValue)) return 90;
+            if (nameParts.some((part) => part.startsWith(searchValue))) return 85;
+            if (normalizedEmailUser === searchValue) return 80;
+            if (normalizedEmailUser.startsWith(searchValue)) return 75;
+            if (normalizedPhone.startsWith(searchValue)) return 70;
+            if (normalizedId.startsWith(searchValue)) return 65;
+            if (normalizedName.includes(searchValue)) return 60;
+            if (normalizedEmailUser.includes(searchValue)) return 50;
+            if (normalizedPhone.includes(searchValue)) return 40;
+            if (normalizedId.includes(searchValue)) return 30;
+
+            return 0;
+        };
+
+        return users
+            .map((user) => ({
+                user,
+                score: getMatchScore(user),
+                isSelected: formData.selectedUsers.includes(user.id || user._id)
+            }))
+            .filter(({ score }) => score > 0)
+            .sort((leftEntry, rightEntry) => {
+                if (leftEntry.isSelected !== rightEntry.isSelected) {
+                    return leftEntry.isSelected ? -1 : 1;
+                }
+
+                if (leftEntry.score !== rightEntry.score) {
+                    return rightEntry.score - leftEntry.score;
+                }
+
+                return String(leftEntry.user?.name || '').localeCompare(String(rightEntry.user?.name || ''));
+            })
+            .map(({ user }) => user);
+    }, [audienceSearchTerm, formData.selectedUsers, users]);
 
     return (
         <div className="space-y-6 pb-12 text-left font-['Inter']">
@@ -447,8 +486,41 @@ const CouponFormPage = () => {
                             </div>
 
                             {formData.userEligibility === 'selected' && (
-                                <div className="rounded-2xl border border-gray-100 bg-gray-50/30 p-4 pr-2 max-h-[320px] overflow-y-auto">
-                                    <div className="sticky top-0 z-10 pb-3 bg-gray-50/95 backdrop-blur-sm">
+                                <div className="space-y-3 rounded-2xl border border-gray-100 bg-gray-50/50 p-4">
+                                    <div className="rounded-2xl border border-dashed border-footerBg/15 bg-white/90 p-3">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div>
+                                                <p className="text-[9px] font-black uppercase tracking-widest text-footerBg">
+                                                    Selected Users
+                                                </p>
+                                                <p className="mt-1 text-[11px] font-semibold text-gray-500">
+                                                    {selectedAudienceUsers.length > 0
+                                                        ? `${selectedAudienceUsers.length} user${selectedAudienceUsers.length === 1 ? '' : 's'} ready for this coupon`
+                                                        : 'Pick one or more users from the list below'}
+                                                </p>
+                                            </div>
+                                            <span className="rounded-full bg-footerBg px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-white">
+                                                {selectedAudienceUsers.length}
+                                            </span>
+                                        </div>
+                                        {selectedAudienceUsers.length > 0 && (
+                                            <div className="mt-3 flex max-h-24 flex-wrap gap-2 overflow-y-auto pr-1">
+                                                {selectedAudienceUsers.map((user) => (
+                                                    <button
+                                                        key={`selected-${user.id || user._id}`}
+                                                        type="button"
+                                                        onClick={() => toggleSelectedUser(user.id || user._id)}
+                                                        className="rounded-full border border-footerBg/15 bg-footerBg/5 px-3 py-1.5 text-left text-[10px] font-black text-footerBg transition-all hover:border-footerBg"
+                                                    >
+                                                        {user.name || 'Unnamed user'}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="max-h-[420px] overflow-y-auto pr-2 scroll-smooth [scrollbar-gutter:stable]">
+                                        <div className="sticky top-0 z-10 space-y-2 pb-3 bg-gray-50/95 backdrop-blur-sm">
                                         <input
                                             type="text"
                                             value={audienceSearchTerm}
@@ -460,22 +532,33 @@ const CouponFormPage = () => {
                                             Showing {filteredAudienceUsers.length} of {users.length} users
                                         </p>
                                     </div>
-                                    {filteredAudienceUsers.length > 0 ? (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                            {filteredAudienceUsers.map((u) => (
-                                                <SelectionCard
-                                                    key={u.id || u._id}
-                                                    title={`${u.name} (${u.email})`}
-                                                    isSelected={formData.selectedUsers.includes(u.id || u._id)}
-                                                    onToggle={() => toggleSelectedUser(u.id || u._id)}
-                                                />
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <p className="text-[11px] font-bold text-gray-400 text-center py-6">
-                                            {users.length > 0 ? 'No users match this search' : 'No users available for targeting'}
-                                        </p>
-                                    )}
+                                        {isUsersLoading ? (
+                                            <p className="py-10 text-center text-[11px] font-bold text-gray-400">
+                                                Loading users...
+                                            </p>
+                                        ) : isUsersError ? (
+                                            <p className="py-10 text-center text-[11px] font-bold text-red-400">
+                                                Could not load users right now
+                                            </p>
+                                        ) : filteredAudienceUsers.length > 0 ? (
+                                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                                {filteredAudienceUsers.map((u) => (
+                                                    <SelectionCard
+                                                        key={u.id || u._id}
+                                                        title={u.name || 'Unnamed user'}
+                                                        subtitle={u.email || u.phone || u.id || u._id}
+                                                        meta={u.phone || u.id || u._id}
+                                                        isSelected={formData.selectedUsers.includes(u.id || u._id)}
+                                                        onToggle={() => toggleSelectedUser(u.id || u._id)}
+                                                    />
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="py-10 text-center text-[11px] font-bold text-gray-400">
+                                                {users.length > 0 ? 'No users match this search' : 'No users available for targeting'}
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
                             )}
 
@@ -626,11 +709,18 @@ const CouponFormPage = () => {
 };
 
 // Compact Selection Card
-const SelectionCard = ({ title, image, isSelected, onToggle }) => (
-    <div onClick={onToggle} className={`flex items-center gap-3 p-3 rounded-2xl border transition-all cursor-pointer ${isSelected ? 'bg-white border-footerBg' : 'bg-white border-transparent hover:border-gray-100 shadow-sm'}`}>
+const SelectionCard = ({ title, subtitle, meta, image, isSelected, onToggle }) => (
+    <div onClick={onToggle} className={`flex items-center gap-3 p-3 rounded-2xl border transition-all cursor-pointer ${isSelected ? 'bg-white border-footerBg shadow-sm shadow-footerBg/10' : 'bg-white border-transparent hover:border-gray-200 shadow-sm'}`}>
         <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${isSelected ? 'bg-footerBg border-footerBg' : 'border-gray-200'}`}>{isSelected && <CheckCircle2 size={10} className="text-white" strokeWidth={3} />}</div>
         {image && <img src={image} className="w-7 h-7 object-contain mix-blend-multiply" alt="" />}
-        <p className={`text-[11px] font-black truncate flex-1 ${isSelected ? 'text-footerBg' : 'text-gray-600'}`}>{title}</p>
+        <div className="min-w-0 flex-1">
+            <p className={`truncate text-[11px] font-black ${isSelected ? 'text-footerBg' : 'text-gray-700'}`}>{title}</p>
+            {(subtitle || meta) && (
+                <p className="mt-0.5 truncate text-[10px] font-semibold text-gray-400">
+                    {[subtitle, meta].filter(Boolean).join(' • ')}
+                </p>
+            )}
+        </div>
     </div>
 );
 
