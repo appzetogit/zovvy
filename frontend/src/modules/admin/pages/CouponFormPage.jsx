@@ -61,11 +61,24 @@ const CouponFormPage = () => {
     const { data: usersResponse = {} } = useQuery({
         queryKey: ['users', 'coupon-targeting'],
         queryFn: async () => {
-            const res = await fetch(`${API_URL}/users?limit=500`, {
-                headers: getAuthHeaders()
-            });
-            if (!res.ok) throw new Error('Failed to fetch users');
-            return res.json();
+            const limit = 200;
+            let currentPage = 1;
+            let totalPages = 1;
+            const allUsers = [];
+
+            while (currentPage <= totalPages) {
+                const res = await fetch(`${API_URL}/users?page=${currentPage}&limit=${limit}`, {
+                    headers: getAuthHeaders()
+                });
+                if (!res.ok) throw new Error('Failed to fetch users');
+
+                const data = await res.json();
+                allUsers.push(...(Array.isArray(data?.users) ? data.users : []));
+                totalPages = Number(data?.pages) || 1;
+                currentPage += 1;
+            }
+
+            return { users: allUsers };
         }
     });
     const users = Array.isArray(usersResponse?.users) ? usersResponse.users : [];
@@ -83,6 +96,7 @@ const CouponFormPage = () => {
     });
 
     const [loading, setLoading] = useState(false);
+    const [audienceSearchTerm, setAudienceSearchTerm] = useState('');
     const [formData, setFormData] = useState({
         code: '',
         type: 'flat',
@@ -235,6 +249,27 @@ const CouponFormPage = () => {
         for (let i = 0; i < 4; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
         setFormData({ ...formData, code: result });
     };
+
+    const filteredAudienceUsers = useMemo(() => {
+        const searchValue = audienceSearchTerm.trim().toLowerCase();
+
+        if (!searchValue) return users;
+
+        return users.filter((user) => {
+            const searchableValue = [
+                user?.name,
+                user?.email,
+                user?.phone,
+                user?.id,
+                user?._id
+            ]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase();
+
+            return searchableValue.includes(searchValue);
+        });
+    }, [audienceSearchTerm, users]);
 
     return (
         <div className="space-y-6 pb-12 text-left font-['Inter']">
@@ -412,10 +447,22 @@ const CouponFormPage = () => {
                             </div>
 
                             {formData.userEligibility === 'selected' && (
-                                <div className="rounded-2xl border border-gray-100 bg-gray-50/30 p-4 max-h-[220px] overflow-y-auto [&::-webkit-scrollbar]:hidden">
-                                    {users.length > 0 ? (
+                                <div className="rounded-2xl border border-gray-100 bg-gray-50/30 p-4 pr-2 max-h-[320px] overflow-y-auto">
+                                    <div className="sticky top-0 z-10 pb-3 bg-gray-50/95 backdrop-blur-sm">
+                                        <input
+                                            type="text"
+                                            value={audienceSearchTerm}
+                                            onChange={(e) => setAudienceSearchTerm(e.target.value)}
+                                            placeholder="Search target user by name, email or phone..."
+                                            className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-[11px] font-semibold text-footerBg outline-none transition-all focus:border-footerBg"
+                                        />
+                                        <p className="mt-2 text-[9px] font-black uppercase tracking-widest text-gray-400">
+                                            Showing {filteredAudienceUsers.length} of {users.length} users
+                                        </p>
+                                    </div>
+                                    {filteredAudienceUsers.length > 0 ? (
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                            {users.map((u) => (
+                                            {filteredAudienceUsers.map((u) => (
                                                 <SelectionCard
                                                     key={u.id || u._id}
                                                     title={`${u.name} (${u.email})`}
@@ -425,7 +472,9 @@ const CouponFormPage = () => {
                                             ))}
                                         </div>
                                     ) : (
-                                        <p className="text-[11px] font-bold text-gray-400 text-center py-6">No users available for targeting</p>
+                                        <p className="text-[11px] font-bold text-gray-400 text-center py-6">
+                                            {users.length > 0 ? 'No users match this search' : 'No users available for targeting'}
+                                        </p>
                                     )}
                                 </div>
                             )}
