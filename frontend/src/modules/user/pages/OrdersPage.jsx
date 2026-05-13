@@ -14,8 +14,15 @@ const OrdersPage = () => {
     const ordersPerPage = 6;
 
     const totalPages = Math.max(1, Math.ceil(orders.length / ordersPerPage));
+    const normalizeStatus = (status) => {
+        const raw = String(status || '').trim().toLowerCase();
+        if (raw === 'pending') return 'Processing';
+        if (raw === 'out for delivery' || raw === 'out_for_delivery') return 'OutForDelivery';
+        return raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : '';
+    };
+
     const getRefundInfo = (order) => {
-        const isCancelled = String(order?.status || '').toLowerCase() === 'cancelled';
+        const isCancelled = normalizeStatus(order?.status) === 'Cancelled';
         if (!isCancelled) return null;
 
         if (order?.paymentMethod === 'cod' || order?.refundStatus === 'not_applicable') return null;
@@ -72,6 +79,15 @@ const OrdersPage = () => {
                         const extraItems = Math.max((order.items?.length || 0) - 1, 0);
                         const orderId = order.id || order._id;
                         const refundInfo = getRefundInfo(order);
+                        const normalizedStatus = normalizeStatus(order.status);
+                        const statusClassName =
+                            normalizedStatus === 'Cancelled'
+                                ? 'bg-red-50 text-red-500'
+                                : normalizedStatus === 'Delivered'
+                                    ? 'bg-emerald-50 text-emerald-500'
+                                    : normalizedStatus === 'Shipped' || normalizedStatus === 'OutForDelivery'
+                                        ? 'bg-indigo-50 text-indigo-500'
+                                        : 'bg-amber-50 text-amber-500';
 
                         return (
                             <motion.div
@@ -87,8 +103,8 @@ const OrdersPage = () => {
                                             <div className="space-y-1">
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-mono text-[9px] md:text-[11px] text-slate-400 tracking-wide">Order ID: {orderId}</span>
-                                                    <span className={`text-[8px] md:text-[10px] font-black uppercase px-2 py-0.5 rounded tracking-widest ${order.status?.toLowerCase() === 'shipped' ? 'bg-indigo-50 text-indigo-500' : 'bg-green-50 text-green-500'}`}>
-                                                        {order.status}
+                                                    <span className={`text-[8px] md:text-[10px] font-black uppercase px-2 py-0.5 rounded tracking-widest ${statusClassName}`}>
+                                                        {normalizedStatus}
                                                     </span>
                                                 </div>
                                                 <div className="text-[9px] md:text-xs text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">

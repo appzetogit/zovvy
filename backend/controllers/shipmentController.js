@@ -2,6 +2,7 @@ import asyncHandler from 'express-async-handler';
 import shiprocketService from '../utils/shiprocketService.js';
 import Order from '../models/Order.js';
 import { restockItems } from '../utils/stockUtils.js';
+import { normalizeOrderStatus, syncOrderWithShiprocket } from '../utils/orderStatusSync.js';
 
 // @desc    Get shipping quote for checkout
 // @route   POST /api/shipments/quote
@@ -47,7 +48,7 @@ export const getTrackingDetails = asyncHandler(async (req, res) => {
       return res.status(404).json({ message: 'Order not found' });
     }
 
-    if (!order.awbCode) {
+    if (!order.awbCode && !order.shiprocketOrderId) {
       return res.status(400).json({ 
         message: 'Tracking not available yet',
         order: {
@@ -58,8 +59,12 @@ export const getTrackingDetails = asyncHandler(async (req, res) => {
       });
     }
 
-    // Get live tracking from Shiprocket
-    const trackingData = await shiprocketService.trackShipment(order.awbCode);
+    // Get live tracking from Shiprocket and sync local order state as a fallback
+    const trackingData = order.awbCode
+      ? await shiprocketService.trackShipment(order.awbCode)
+      : await shiprocketService.trackByOrderId(order.shiprocketOrderId);
+
+    await syncOrderWithShiprocket(order, trackingData);
 
     res.json({
       orderId: order.id,
@@ -95,17 +100,7 @@ export const shiprocketWebhook = asyncHandler(async (req, res) => {
     }
 
     // Update order status based on webhook event
-    const statusMapping = {
-      'PICKUP_COMPLETE': 'Shipped',
-      'IN_TRANSIT': 'Shipped',
-      'OUT_FOR_DELIVERY': 'OutForDelivery',
-      'DELIVERED': 'Delivered',
-      'RTO_INITIATED': 'ReturnInitiated',
-      'RTO_DELIVERED': 'Returned',
-      'CANCELLED': 'Cancelled'
-    };
-
-    const newStatus = statusMapping[webhookData.current_status];
+    const newStatus = normalizeOrderStatus(webhookData.current_status);
     if (newStatus && newStatus !== order.status) {
       const oldStatus = order.status;
       order.status = newStatus;

@@ -6,6 +6,8 @@ class ShiprocketService {
   constructor() {
     this.token = null;
     this.tokenExpiry = null;
+    this.pickupAddress = null;
+    this.pickupAddressFetchedAt = null;
     this.pickupPostcode = null;
     this.pickupPostcodeFetchedAt = null;
   }
@@ -239,6 +241,32 @@ class ShiprocketService {
     };
   }
 
+  async fetchPickupAddress(headers = null) {
+    const cacheAgeMs = 60 * 60 * 1000; // 1 hour
+    if (this.pickupAddress && this.pickupAddressFetchedAt && (Date.now() - this.pickupAddressFetchedAt) < cacheAgeMs) {
+      return this.pickupAddress;
+    }
+
+    const authHeaders = headers || await this.getHeaders();
+    const response = await axios.get(`${SHIPROCKET_BASE_URL}/settings/company/pickup`, { headers: authHeaders });
+    const addresses = response.data?.data?.shipping_address || response.data?.data || [];
+    const configuredPickupLocation = String(process.env.SHIPROCKET_PICKUP_LOCATION || '').trim().toLowerCase();
+
+    const matchedAddress = addresses.find((address) => {
+      const byLocation = String(address?.pickup_location || '').trim().toLowerCase();
+      const byCode = String(address?.pickup_code || '').trim().toLowerCase();
+      return configuredPickupLocation && (byLocation === configuredPickupLocation || byCode === configuredPickupLocation);
+    }) || addresses.find((address) => address?.is_primary_location) || addresses[0] || null;
+
+    if (matchedAddress) {
+      this.pickupAddress = matchedAddress;
+      this.pickupAddressFetchedAt = Date.now();
+      return matchedAddress;
+    }
+
+    return null;
+  }
+
   async resolvePickupPostcode(headers = null) {
     const envPostcode = String(process.env.SHIPROCKET_PICKUP_PINCODE || '').trim();
     if (/^\d{6}$/.test(envPostcode)) {
@@ -251,17 +279,7 @@ class ShiprocketService {
     }
 
     try {
-      const authHeaders = headers || await this.getHeaders();
-      const response = await axios.get(`${SHIPROCKET_BASE_URL}/settings/company/pickup`, { headers: authHeaders });
-      const pickupLocationName = String(process.env.SHIPROCKET_PICKUP_LOCATION || '').trim().toLowerCase();
-      const addresses = response.data?.data?.shipping_address || response.data?.data || [];
-
-      const matchAddress = addresses.find((address) => {
-        const byLocation = String(address?.pickup_location || '').trim().toLowerCase();
-        const byCode = String(address?.pickup_code || '').trim().toLowerCase();
-        return pickupLocationName && (byLocation === pickupLocationName || byCode === pickupLocationName);
-      }) || addresses[0];
-
+      const matchAddress = await this.fetchPickupAddress(headers);
       const resolved = String(
         matchAddress?.pin_code ||
         matchAddress?.pincode ||
@@ -281,6 +299,28 @@ class ShiprocketService {
     return '';
   }
 
+  async resolvePickupLocation(headers = null) {
+    const configuredPickupLocation = String(process.env.SHIPROCKET_PICKUP_LOCATION || '').trim();
+    if (!configuredPickupLocation) {
+      const address = await this.fetchPickupAddress(headers);
+      return String(address?.pickup_location || address?.pickup_code || '').trim();
+    }
+
+    try {
+      const address = await this.fetchPickupAddress(headers);
+      const resolvedLocation = String(address?.pickup_location || address?.pickup_code || '').trim();
+      if (resolvedLocation && resolvedLocation.toLowerCase() !== configuredPickupLocation.toLowerCase()) {
+        console.warn(
+          `Shiprocket pickup location "${configuredPickupLocation}" not found. Falling back to "${resolvedLocation}".`
+        );
+      }
+      return resolvedLocation || configuredPickupLocation;
+    } catch (error) {
+      console.error('Shiprocket Pickup Location Resolve Error:', error.response?.data || error.message);
+      return configuredPickupLocation;
+    }
+  }
+
   /**
    * Create order in Shiprocket
    * @param {Object} orderData - Order details from our database
@@ -292,12 +332,13 @@ class ShiprocketService {
       const defaults = this.getDefaultDimensions();
       const sourceItems = orderData.items || orderData.order_items || [];
       const { orderItems, totalWeightKg, packageDimensions } = this.buildOrderItems(sourceItems);
+      const pickupLocation = await this.resolvePickupLocation(headers);
 
       // Transform our order data to Shiprocket format
       const shiprocketOrder = {
         order_id: orderData.id,
         order_date: new Date(orderData.date).toISOString().split('T')[0], // yyyy-mm-dd
-        pickup_location: process.env.SHIPROCKET_PICKUP_LOCATION,
+        pickup_location: pickupLocation,
         channel_id: '', // Will use default custom channel
         comment: `Order from ${orderData.paymentMethod.toUpperCase()}`,
         billing_customer_name: orderData.shippingAddress.fullName,

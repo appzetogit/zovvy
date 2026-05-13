@@ -15,6 +15,13 @@ import { useProducts } from '../../../hooks/useProducts';
 
 const API_URL = API_BASE_URL;
 
+const normalizeStatus = (status) => {
+    const raw = String(status || '').trim().toLowerCase();
+    if (raw === 'pending') return 'Processing';
+    if (raw === 'out for delivery' || raw === 'out_for_delivery') return 'OutForDelivery';
+    return raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : '';
+};
+
 const OrderDetailPage = () => {
     const { orderId } = useParams();
     const navigate = useNavigate();
@@ -120,7 +127,9 @@ const OrderDetailPage = () => {
     }
 
     // Check if eligible for return (delivered and within 7 days)
-    const isDelivered = order.deliveryStatus === 'Delivered';
+    const normalizedOrderStatus = normalizeStatus(order.status);
+    const normalizedDeliveryStatus = normalizeStatus(order.deliveryStatus || order.status);
+    const isDelivered = normalizedDeliveryStatus === 'Delivered';
     const isWithinReturnWindow = () => {
         if (!order.deliveredDate) return false;
         const deliveryDate = new Date(order.deliveredDate);
@@ -133,9 +142,9 @@ const OrderDetailPage = () => {
 
     // Check if order can be cancelled
     const cancellableStatuses = ['pending', 'processing', 'received', 'processed', 'packed', 'shipped'];
-    const normalizedOrderStatus = String(order.status || '').toLowerCase();
-    const canCancel = cancellableStatuses.includes(normalizedOrderStatus) && normalizedOrderStatus !== 'cancelled';
-    const isCancelled = normalizedOrderStatus === 'cancelled';
+    const rawOrderStatus = String(order.status || '').toLowerCase();
+    const canCancel = cancellableStatuses.includes(rawOrderStatus) && normalizedOrderStatus !== 'Cancelled';
+    const isCancelled = normalizedOrderStatus === 'Cancelled';
     const hasRefundRequested = isCancelled
         && order.paymentMethod !== 'cod'
         && ['pending', 'processed', 'failed'].includes(order.refundStatus);
@@ -214,11 +223,11 @@ const OrderDetailPage = () => {
         { status: 'Processing', label: 'Order Placed', icon: Archive },
         { status: 'Packed', label: 'Packed', icon: Package },
         { status: 'Shipped', label: 'Shipped', icon: Truck },
-        { status: 'Out for Delivery', label: 'Out for Delivery', icon: MapPin },
+        { status: 'OutForDelivery', label: 'Out for Delivery', icon: MapPin },
         { status: 'Delivered', label: 'Delivered', icon: CheckCircle }
     ];
 
-    const currentStepIndex = steps.findIndex(s => s.status === order.deliveryStatus);
+    const currentStepIndex = steps.findIndex(s => s.status === normalizedDeliveryStatus);
     const trackingActivities = liveTracking?.tracking?.tracking_data?.shipment_track_activities || [];
     const latestTrackingActivity = trackingActivities[0];
 
@@ -260,7 +269,7 @@ const OrderDetailPage = () => {
                                             {order.awbCode ? 'AWB / Tracking ID' : 'Order Status'}
                                         </p>
                                         <p className="text-sm font-bold text-footerBg">
-                                            {order.awbCode || order.status || 'Processing'}
+                                            {order.awbCode || normalizedOrderStatus || 'Processing'}
                                         </p>
                                         {order.courierName && (
                                             <p className="text-[10px] text-gray-400">via {order.courierName}</p>
@@ -294,7 +303,7 @@ const OrderDetailPage = () => {
                                 <div className="flex flex-col md:flex-row justify-between gap-4 relative">
                                     {steps.map((step, index) => {
                                         const isActive = index <= currentStepIndex;
-                                        const isCompleted = index < currentStepIndex || (index === currentStepIndex && order.deliveryStatus === 'Delivered');
+                                        const isCompleted = index < currentStepIndex || (index === currentStepIndex && normalizedDeliveryStatus === 'Delivered');
                                         const isCurrent = index === currentStepIndex;
                                         const Icon = step.icon;
 
