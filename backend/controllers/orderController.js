@@ -6,6 +6,7 @@ import Razorpay from 'razorpay';
 import shiprocketService from '../utils/shiprocketService.js';
 import asyncHandler from 'express-async-handler';
 import mongoose from 'mongoose';
+import { syncOrdersWithShiprocket } from '../utils/orderStatusSync.js';
 
 const getRazorpayClient = () => {
   if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
@@ -82,6 +83,7 @@ const syncRefundDetails = async (orders) => {
 export const getOrders = async (req, res) => {
   try {
     const orders = await Order.find().sort({ createdAt: -1 });
+    await syncOrdersWithShiprocket(orders);
     await syncRefundDetails(orders);
     res.json(orders);
   } catch (error) {
@@ -91,6 +93,12 @@ export const getOrders = async (req, res) => {
 
 export const getOrderStats = async (req, res) => {
   try {
+    const activeOrders = await Order.find({
+      shiprocketOrderId: { $exists: true, $ne: null },
+      status: { $nin: ['Cancelled', 'Delivered', 'Returned'] }
+    });
+    await syncOrdersWithShiprocket(activeOrders);
+
     const stats = await Order.aggregate([
       {
         $group: {
@@ -285,6 +293,7 @@ export const getOrdersByUser = asyncHandler(async (req, res) => {
   const { userId } = req.params;
   try {
     const orders = await Order.find({ userId }).sort({ createdAt: -1 });
+    await syncOrdersWithShiprocket(orders);
     await syncRefundDetails(orders);
     res.json(orders);
   } catch (error) {
@@ -308,12 +317,6 @@ export const updateOrder = asyncHandler(async (req, res) => {
 
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
-    }
-
-    if (normalizedReason.length < 5) {
-      return res.status(400).json({
-        message: 'Cancellation reason is required and must be at least 5 characters long'
-      });
     }
 
     const oldStatus = order.status;

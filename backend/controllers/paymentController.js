@@ -167,10 +167,14 @@ export const verifyPayment = asyncHandler(async (req, res) => {
                 if (shiprocketResponse && shiprocketResponse.order_id) {
                     newOrder.shiprocketOrderId = shiprocketResponse.order_id;
                     newOrder.shiprocketShipmentId = shiprocketResponse.shipment_id;
+                    const selectedCourierId = Number(newOrder.shippingQuote?.courierId || 0) || null;
                     
                     // Assign AWB automatically
                     try {
-                        const awbResponse = await shiprocketService.assignAWB(shiprocketResponse.shipment_id);
+                        const awbResponse = await shiprocketService.assignAWB(
+                            shiprocketResponse.shipment_id,
+                            selectedCourierId
+                        );
                         
                         // Validate AWB response structure
                         if (awbResponse && awbResponse.response && awbResponse.response.data) {
@@ -293,10 +297,14 @@ export const createCODOrder = asyncHandler(async (req, res) => {
                 if (shiprocketResponse && shiprocketResponse.order_id) {
                     newOrder.shiprocketOrderId = shiprocketResponse.order_id;
                     newOrder.shiprocketShipmentId = shiprocketResponse.shipment_id;
+                    const selectedCourierId = Number(newOrder.shippingQuote?.courierId || 0) || null;
                     
                     // Assign AWB automatically
                     try {
-                        const awbResponse = await shiprocketService.assignAWB(shiprocketResponse.shipment_id);
+                        const awbResponse = await shiprocketService.assignAWB(
+                            shiprocketResponse.shipment_id,
+                            selectedCourierId
+                        );
                         
                         // Validate AWB response structure
                         if (awbResponse && awbResponse.response && awbResponse.response.data) {
