@@ -6,6 +6,7 @@ import useCartStore from '../../../store/useCartStore';
 import useUserStore from '../../../store/useUserStore';
 import { useProducts, useProduct } from '../../../hooks/useProducts';
 import { useActiveCoupons } from '../../../hooks/useCoupons';
+import { useSEO } from '../../../hooks/useSEO';
 
 // import { PACKS } from '../../../mockData/data'; // Removed if unused
 import { API_BASE_URL } from '@/lib/apiUrl';
@@ -84,6 +85,14 @@ const ProductDetailPage = () => {
     const { data: product, isLoading: isProductLoading, isError: isProductError } = useProduct(slug);
     const { data: allProducts = [] } = useProducts();
     const { data: activeCoupons = [] } = useActiveCoupons();
+
+    // SEO Integration
+    const cleanDescription = product?.description ? product.description.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').substring(0, 160).trim() : '';
+    useSEO({
+        title: product?.seoTitle || product?.name || '',
+        description: product?.seoDescription || cleanDescription || '',
+        ogImage: product?.seoImage || product?.image || '',
+    });
 
     // Helpers
     const getProductById = (id) => allProducts.find(p => p.id === id);
@@ -540,6 +549,33 @@ const ProductDetailPage = () => {
 
     return (
         <div className="bg-white min-h-screen font-['Inter'] pb-8">
+            {/* Dynamic Product Schema (JSON-LD) for Google Rich Snippets */}
+            <script type="application/ld+json">
+                {JSON.stringify({
+                    "@context": "https://schema.org",
+                    "@type": "Product",
+                    "name": product.name,
+                    "image": selectedImage || product.image || FALLBACK_IMAGE,
+                    "description": cleanDescription,
+                    "brand": {
+                        "@type": "Brand",
+                        "name": product.brand || "Zovvy Foods"
+                    },
+                    "offers": {
+                        "@type": "Offer",
+                        "url": window.location.href,
+                        "priceCurrency": "INR",
+                        "price": currentPrice,
+                        "availability": isOutOfStock ? "https://schema.org/OutOfStock" : "https://schema.org/InStock"
+                    },
+                    "aggregateRating": product.rating ? {
+                        "@type": "AggregateRating",
+                        "ratingValue": product.rating,
+                        "reviewCount": product.reviews || 1
+                    } : undefined
+                })}
+            </script>
+
             {/* Breadcrumb - Compact */}
             <div className="container mx-auto px-4 md:px-12 py-3 flex items-center gap-3 relative z-30">
                 <button
@@ -718,7 +754,7 @@ const ProductDetailPage = () => {
                                                 : 'border-gray-200 hover:border-gray-300'
                                             }`}
                                     >
-                                        <img src={img} alt="" className="w-full h-full object-contain mix-blend-multiply" />
+                                        <img src={img} alt={`${product?.name || 'Product'} thumbnail ${idx + 1}`} className="w-full h-full object-contain mix-blend-multiply" />
                                     </button>
                                 ))}
                             </div>
@@ -755,7 +791,7 @@ const ProductDetailPage = () => {
                                             <div className="w-8 h-8 bg-white rounded flex items-center justify-center p-1 shrink-0 border border-gray-100">
                                                 <img
                                                     src={allProducts.find(p => p.id === item.productId)?.image || product.image}
-                                                    alt=""
+                                                    alt={item.productName || item.name || 'Combo item'}
                                                     className="w-full h-full object-contain mix-blend-multiply"
                                                 />
                                             </div>
@@ -1387,7 +1423,7 @@ const ProductDetailPage = () => {
                         className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 z-40 lg:hidden shadow-[0_-4px_10px_rgba(0,0,0,0.1)]"
                     >
                         <div className="flex items-center gap-4">
-                            <img src={selectedImage || product.image} alt="" className="w-12 h-12 object-contain bg-gray-50 rounded" />
+                            <img src={selectedImage || product.image} alt={product.name || 'Product'} className="w-12 h-12 object-contain bg-gray-50 rounded" />
                             <div className="flex-1 min-w-0">
                                 <h4 className="text-xs font-bold text-gray-800 truncate">{product.name}</h4>
                                 <div className="text-[#842A35] font-bold text-sm">₹{currentPrice}</div>

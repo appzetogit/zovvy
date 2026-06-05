@@ -6,7 +6,14 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import ProductCard from '../components/ProductCard';
 
+import { useSEO } from '../../../hooks/useSEO';
+
 const WishlistPage = () => {
+    useSEO({
+        title: 'Wishlist',
+        description: 'View the premium dry fruits and snacks you have saved to your wishlist at Zovvy Foods.',
+    });
+
     const navigate = useNavigate();
     const { user } = useAuth();
 

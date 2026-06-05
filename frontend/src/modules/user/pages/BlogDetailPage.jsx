@@ -4,10 +4,19 @@ import { motion } from 'framer-motion';
 import { Calendar, User, ArrowLeft, Share2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useBlogBySlug } from '../../../hooks/useContent';
+import { useSEO } from '../../../hooks/useSEO';
 
 const BlogDetailPage = () => {
     const { slug } = useParams();
     const { data: blog, isLoading, error } = useBlogBySlug(slug);
+
+    // SEO Integration
+    const cleanExcerpt = blog?.excerpt ? blog.excerpt.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').substring(0, 160).trim() : '';
+    useSEO({
+        title: blog?.title || '',
+        description: cleanExcerpt || '',
+        ogImage: blog?.image || '',
+    });
 
     const handleShare = async () => {
         const shareData = {

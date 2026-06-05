@@ -1,4 +1,4 @@
-﻿
+
 import React, { useState, useEffect } from 'react';
 // import { useShop } from '../../../context/ShopContext'; // Removed
 import { useAuth } from '../../../context/AuthContext';
@@ -18,6 +18,7 @@ import { useValidateReferral } from '../../../hooks/useReferrals';
 import { useSetting } from '../../../hooks/useSettings';
 import { API_BASE_URL } from '@/lib/apiUrl';
 import { enrichCartItems } from '../../../utils/cartItems';
+import { useSEO } from '../../../hooks/useSEO';
 
 const FULL_NAME_REGEX = /^[A-Za-z][A-Za-z\s.'-]{1,119}$/;
 const CITY_STATE_REGEX = /^[A-Za-z][A-Za-z\s.'-]{1,79}$/;
@@ -25,6 +26,11 @@ const PHONE_REGEX = /^\d{10}$/;
 const PINCODE_REGEX = /^\d{6}$/;
 
 const CheckoutPage = () => {
+    useSEO({
+        title: 'Checkout',
+        description: 'Complete your checkout details to order premium quality dry fruits, seeds and healthy snacks from Zovvy Foods.',
+    });
+
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useAuth();

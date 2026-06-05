@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { useParams } from 'react-router-dom';
 import { useWebsiteContent } from '../../../hooks/useContent';
 import { useCreateContactSubmission } from '../../../hooks/useContactSubmissions';
+import { useSEO } from '../../../hooks/useSEO';
 
 const CONTACT_NAME_REGEX = /^[A-Za-z][A-Za-z\s.'-]{1,119}$/;
 const CONTACT_PHONE_REGEX = /^\d{10}$/;
@@ -204,6 +205,11 @@ const InfoPage = ({ type: propType }) => {
 
     const displayTitle = isStaticContactPage ? config.title : (pageData?.title || config.title);
     const displaySubtitle = isStaticContactPage ? config.subtitle : (pageData?.subtitle || config.subtitle);
+
+    useSEO({
+        title: displayTitle,
+        description: displaySubtitle || `Read our ${displayTitle} on Zovvy Foods.`,
+    });
     // content can be a string (HTML from Quill) or fallback JSX
     const displayContent = !isStaticContactPage && pageData?.content ? (
         <div

@@ -22,10 +22,17 @@ const normalizeStatus = (status) => {
     return raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : '';
 };
 
+import { useSEO } from '../../../hooks/useSEO';
+
 const OrderDetailPage = () => {
     const { orderId } = useParams();
     const navigate = useNavigate();
     const { user, getAuthHeaders } = useAuth();
+
+    useSEO({
+        title: orderId ? `Order #${orderId}` : 'Order Details',
+        description: 'View order details and status of your Zovvy Foods order.',
+    });
 
     // Hooks
     const { data: orders = [] } = useOrders(user?.id);

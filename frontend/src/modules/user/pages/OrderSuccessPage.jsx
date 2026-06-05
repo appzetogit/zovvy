@@ -5,7 +5,14 @@ import { CheckCircle, Package, ArrowRight, Home } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 
+import { useSEO } from '../../../hooks/useSEO';
+
 const OrderSuccessPage = () => {
+    useSEO({
+        title: 'Order Confirmed',
+        description: 'Thank you for your purchase from Zovvy Foods. Your order has been placed successfully.',
+    });
+
     const { orderId } = useParams();
 
     return (
@@ -48,7 +55,7 @@ const OrderSuccessPage = () => {
                 </div>
 
                 <p className="mt-5 md:mt-7 text-[9px] md:text-[10px] text-gray-300 font-bold uppercase tracking-[0.2em]">
-                    Thank you for choosing FarmLyf
+                    Thank you for choosing Zovvy Foods
                 </p>
             </motion.div>
         </div>

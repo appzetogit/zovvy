@@ -7,10 +7,17 @@ import { ArrowLeft, RefreshCw, CheckCircle, Clock, Truck, XCircle, AlertCircle, 
 import { useReturns } from '../../../hooks/useOrders';
 import { useProducts } from '../../../hooks/useProducts';
 
+import { useSEO } from '../../../hooks/useSEO';
+
 const ReturnDetailPage = () => {
     const { returnId } = useParams();
     const navigate = useNavigate();
     const { user } = useAuth();
+
+    useSEO({
+        title: returnRequest ? (returnRequest.type === 'replace' ? 'Replacement Details' : 'Return Details') : 'Return Status',
+        description: 'Track the return or replacement status of your Zovvy Foods order.',
+    });
     
     const { data: returns = [] } = useReturns(user?.id);
     const { data: products = [] } = useProducts();
@@ -209,7 +216,7 @@ const ReturnDetailPage = () => {
                                     <p className="text-[9px] font-black text-primary uppercase tracking-widest">Replacement Item</p>
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 bg-white rounded-lg border border-primary/10 p-1 flex items-center justify-center shrink-0">
-                                            <img src={replacementVariant.product.image} className="w-full h-full object-contain mix-blend-multiply" alt="" />
+                                            <img src={replacementVariant.product.image} className="w-full h-full object-contain mix-blend-multiply" alt={replacementVariant.product.name} />
                                         </div>
                                         <div className="min-w-0">
                                             <p className="text-xs font-black text-footerBg truncate">{replacementVariant.product.name}</p>
