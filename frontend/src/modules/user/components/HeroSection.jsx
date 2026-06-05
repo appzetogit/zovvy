@@ -134,10 +134,7 @@ const HeroSection = () => {
                         >
                             {/* Background Banner Image */}
                             <div className="absolute inset-0 z-0">
-                                <motion.img
-                                    initial={{ scale: 1.05 }}
-                                    animate={{ scale: 1 }}
-                                    transition={{ duration: 6, ease: "linear" }}
+                                <img
                                     src={currentSlide.image}
                                     alt={currentSlide.title}
                                     loading="eager"
@@ -148,7 +145,6 @@ const HeroSection = () => {
                                         e.target.src = 'https://images.unsplash.com/photo-1623428187969-5da2dcea5ebf?auto=format&fit=crop&q=80&w=1600';
                                     }}
                                 />
-                                <div className="absolute inset-0 bg-black/20" /> {/* Slight overlay for text readability */}
                             </div>
 
                             {/* Left Side Content */}
@@ -202,7 +198,7 @@ const HeroSection = () => {
 
                     {/* Static Branding Overlay */}
                     <div className="absolute top-3 left-4 md:left-12 z-40 bg-white/10 backdrop-blur-md px-2 py-1 md:px-3 md:py-1.5 rounded-lg border border-white/20">
-                        <span className="text-[8px] md:text-[10px] tracking-[0.1em] md:tracking-[0.2em] uppercase text-white/80 font-bold block">Passion for Nutrition</span>
+                        <span className="text-[8px] md:text-[10px] tracking-[0.1em] md:tracking-[0.2em] uppercase text-black font-bold block">Passion for Nutrition</span>
                         <div className="flex items-center gap-1 md:gap-1.5">
                             <img src={logo} alt="FarmLyf" className="h-4 md:h-6 w-auto object-contain" />
                         </div>
