@@ -57,11 +57,11 @@ const BlogDetailPage = () => {
     return (
         <div className="bg-white min-h-screen">
             {/* Image Header */}
-            <div className="relative h-[30vh] md:h-[60vh] w-full">
+            <div className="w-full overflow-hidden">
                 <img
                     src={blog.image}
                     alt={blog.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-auto block"
                 />
             </div>
 

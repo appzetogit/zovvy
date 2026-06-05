@@ -30,6 +30,30 @@ const PromoSlider = () => {
     }, [rawBanners]);
 
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [aspectRatio, setAspectRatio] = useState('21/6');
+
+    // Update aspect ratio based on screen size on mount
+    useEffect(() => {
+        if (window.innerWidth < 768) {
+            setAspectRatio('16/9');
+        }
+    }, []);
+
+    // Dynamically calculate aspect ratio of the active banner image
+    useEffect(() => {
+        const slide = banners[currentIndex];
+        if (!slide?.image) return;
+        const img = new Image();
+        img.src = slide.image;
+        img.onload = () => {
+            if (img.naturalWidth && img.naturalHeight) {
+                setAspectRatio(`${img.naturalWidth} / ${img.naturalHeight}`);
+            }
+        };
+        img.onerror = () => {
+            setAspectRatio(window.innerWidth < 768 ? '16/9' : '21/6');
+        };
+    }, [currentIndex, banners]);
 
     useEffect(() => {
         if (banners.length === 0) return;
@@ -46,7 +70,10 @@ const PromoSlider = () => {
 
     return (
         <section className="w-full bg-background py-4 md:py-10 px-3 md:px-12 font-['Inter']">
-            <div className="relative w-full h-[220px] md:h-[400px] overflow-hidden rounded-[1.5rem] md:rounded-[2.5rem] shadow-xl bg-black group">
+            <div 
+                className="relative w-full overflow-hidden rounded-[1.5rem] md:rounded-[2.5rem] shadow-xl bg-black group transition-all duration-500 min-h-[150px] sm:min-h-[200px] md:min-h-[240px] lg:min-h-[300px]"
+                style={{ aspectRatio }}
+            >
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={currentIndex}

@@ -32,6 +32,31 @@ const HeroSection = () => {
     }, [rawBanners]);
 
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [aspectRatio, setAspectRatio] = useState('21/6');
+
+    // Update aspect ratio based on screen size on mount
+    useEffect(() => {
+        if (window.innerWidth < 768) {
+            setAspectRatio('16/9');
+        }
+    }, []);
+
+    const currentSlide = banners[currentIndex];
+
+    // Dynamically calculate aspect ratio of the active banner image
+    useEffect(() => {
+        if (!currentSlide?.image) return;
+        const img = new Image();
+        img.src = currentSlide.image;
+        img.onload = () => {
+            if (img.naturalWidth && img.naturalHeight) {
+                setAspectRatio(`${img.naturalWidth} / ${img.naturalHeight}`);
+            }
+        };
+        img.onerror = () => {
+            setAspectRatio(window.innerWidth < 768 ? '16/9' : '21/6');
+        };
+    }, [currentSlide?.image]);
 
     const [promoSettings, setPromoSettings] = useState({
         badgeText1: 'Upto',
@@ -66,7 +91,6 @@ const HeroSection = () => {
         fetchPromoSettings();
     }, []);
 
-    const currentSlide = banners[currentIndex];
     const currentPromoSettings = {
         ...promoSettings,
         ...(currentSlide?.promoCard || {})
@@ -93,7 +117,10 @@ const HeroSection = () => {
     return (
         <div className="w-full bg-background py-4 md:py-6 px-3 md:px-12">
             <div className="w-full">
-                <div className="relative w-full rounded-3xl overflow-hidden aspect-[16/9] md:aspect-[21/6] bg-[#fdfdfd] shadow-2xl border border-mint/20 group">
+                <div 
+                    className="relative w-full rounded-3xl overflow-hidden bg-[#fdfdfd] shadow-2xl border border-mint/20 group transition-all duration-500 min-h-[150px] sm:min-h-[200px] md:min-h-[240px] lg:min-h-[300px]"
+                    style={{ aspectRatio }}
+                >
 
                     {/* Slider Content */}
                     <AnimatePresence mode="wait">
@@ -125,7 +152,7 @@ const HeroSection = () => {
                             </div>
 
                             {/* Left Side Content */}
-                            <div className="z-30 space-y-0.5 md:space-y-2 max-w-[75%] md:max-w-md mt-12 md:mt-16 md:ml-4 relative text-shadow-sm">
+                            <div className="z-30 space-y-0.5 md:space-y-2 max-w-[75%] md:max-w-md md:ml-4 relative text-shadow-sm">
                                 <motion.div
                                     initial={{ y: 20, opacity: 0 }}
                                     animate={{ y: 0, opacity: 1 }}

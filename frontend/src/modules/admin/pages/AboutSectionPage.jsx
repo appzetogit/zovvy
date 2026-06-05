@@ -26,12 +26,30 @@ const DEFAULT_DATA = {
 };
 
 import { useAboutSection, useUpdateAboutSectionInfo } from '../../../hooks/useContent';
+import { useUploadImage } from '../../../hooks/useProducts';
 
 const AboutSectionPage = () => {
     const navigate = useNavigate();
     const { data: aboutData, isLoading: loading } = useAboutSection();
     const updateAboutMutation = useUpdateAboutSectionInfo();
+    const uploadImageMutation = useUploadImage();
     const [formData, setFormData] = useState(DEFAULT_DATA);
+
+    const handleImageUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+            const res = await uploadImageMutation.mutateAsync(file);
+            if (res?.url) {
+                handleChange('image', res.url);
+                toast.success('Image uploaded successfully!');
+            }
+        } catch (error) {
+            console.error('Upload failed:', error);
+            toast.error('Failed to upload image. Please try again.');
+        }
+        if (e.target) e.target.value = '';
+    };
 
     // Sync formData with fetched data
     useEffect(() => {
@@ -172,21 +190,64 @@ const AboutSectionPage = () => {
                         </div>
                     </div>
 
-                    {/* Image URL */}
+                    {/* Visual Asset */}
                     <div className="space-y-4">
                         <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block">Visual Asset</label>
-                        <div>
-                            <label className="text-[10px] font-bold text-gray-500 mb-1.5 block">Image URL</label>
-                            <div className="relative">
-                                <ImageIcon size={16} className="absolute left-4 top-3 text-gray-400" />
-                                <input
-                                    type="text"
-                                    value={formData.image}
-                                    onChange={(e) => handleChange('image', e.target.value)}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm font-mono text-gray-600 focus:bg-white focus:border-primary outline-none transition-all"
-                                />
-                            </div>
+                        
+                        <div className="relative w-full aspect-[16/10] bg-gray-50 rounded-2xl border border-dashed border-gray-200 flex flex-col items-center justify-center p-6 group overflow-hidden">
+                            {uploadImageMutation.isPending && (
+                                <div className="absolute inset-0 bg-white/80 z-20 flex flex-col items-center justify-center space-y-3">
+                                    <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                    <p className="text-[10px] font-black text-primary uppercase tracking-widest animate-pulse">Uploading...</p>
+                                </div>
+                            )}
+                            
+                            {formData.image ? (
+                                <>
+                                    <img src={formData.image} alt="Preview" className="w-full h-full object-cover rounded-xl" />
+                                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleChange('image', '')}
+                                            className="bg-red-500 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-red-600 transition-all active:scale-95 cursor-pointer"
+                                        >
+                                            Remove Image
+                                        </button>
+                                    </div>
+                                </>
+                            ) : (
+                                <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-white transition-all group/label">
+                                    <input
+                                        type="file"
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={handleImageUpload}
+                                    />
+                                    <div className="text-center space-y-2">
+                                        <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-gray-300 mx-auto shadow-sm group-hover/label:scale-110 transition-transform">
+                                            <ImageIcon size={24} className="text-gray-400" />
+                                        </div>
+                                        <p className="text-xs font-bold text-gray-700 uppercase tracking-wider">Click to Upload Image</p>
+                                        <p className="text-[10px] text-gray-400 font-medium">Supports JPG, PNG, WEBP, AVIF (Max 5MB)</p>
+                                    </div>
+                                </label>
+                            )}
                         </div>
+
+                        {formData.image && (
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold text-gray-500 block">Uploaded URL</label>
+                                <div className="relative">
+                                    <ImageIcon size={16} className="absolute left-4 top-3 text-gray-400" />
+                                    <input
+                                        type="text"
+                                        value={formData.image}
+                                        readOnly
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-xs font-mono text-gray-400 outline-none select-all"
+                                    />
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Descriptions */}
