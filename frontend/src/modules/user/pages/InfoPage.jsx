@@ -197,12 +197,6 @@ const InfoPage = ({ type: propType }) => {
         }
     };
 
-    if (isLoading && !isStaticContactPage) return (
-        <div className="min-h-screen flex items-center justify-center">
-            <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-        </div>
-    );
-
     const displayTitle = isStaticContactPage ? config.title : (pageData?.title || config.title);
     const displaySubtitle = isStaticContactPage ? config.subtitle : (pageData?.subtitle || config.subtitle);
 
@@ -210,6 +204,13 @@ const InfoPage = ({ type: propType }) => {
         title: displayTitle,
         description: displaySubtitle || `Read our ${displayTitle} on Zovvy Foods.`,
     });
+
+    if (isLoading && !isStaticContactPage) return (
+        <div className="min-h-screen flex items-center justify-center">
+            <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+        </div>
+    );
+
     // content can be a string (HTML from Quill) or fallback JSX
     const displayContent = !isStaticContactPage && pageData?.content ? (
         <div
