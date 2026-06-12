@@ -93,7 +93,27 @@ const HeroSection = () => {
     return (
         <div className="w-full bg-background py-4 md:py-6 px-3 md:px-12">
             <div className="w-full">
-                <div className="relative w-full rounded-3xl overflow-hidden aspect-[16/9] md:aspect-[21/6] bg-[#fdfdfd] shadow-2xl border border-mint/20 group">
+                <div className="relative w-full rounded-3xl overflow-hidden bg-[#fdfdfd] shadow-2xl border border-mint/20 group">
+
+                    {/* Natural-height image keeps the banner from being cropped */}
+                    <AnimatePresence mode="wait">
+                        <motion.img
+                            key={currentIndex}
+                            initial={{ opacity: 0, scale: 1.02 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.5 }}
+                            src={currentSlide.image}
+                            alt={currentSlide.title}
+                            loading="eager"
+                            fetchPriority="high"
+                            decoding="async"
+                            className="block w-full h-auto"
+                            onError={(e) => {
+                                e.target.src = 'https://images.unsplash.com/photo-1623428187969-5da2dcea5ebf?auto=format&fit=crop&q=80&w=1600';
+                            }}
+                        />
+                    </AnimatePresence>
 
                     {/* Slider Content */}
                     <AnimatePresence mode="wait">
@@ -105,22 +125,7 @@ const HeroSection = () => {
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.5 }}
                         >
-                            {/* Background Banner Image */}
                             <div className="absolute inset-0 z-0">
-                                <motion.img
-                                    initial={{ scale: 1.05 }}
-                                    animate={{ scale: 1 }}
-                                    transition={{ duration: 6, ease: "linear" }}
-                                    src={currentSlide.image}
-                                    alt={currentSlide.title}
-                                    loading="eager"
-                                    fetchPriority="high"
-                                    decoding="async"
-                                    className="w-full h-full object-fill md:object-cover object-center"
-                                    onError={(e) => {
-                                        e.target.src = 'https://images.unsplash.com/photo-1623428187969-5da2dcea5ebf?auto=format&fit=crop&q=80&w=1600';
-                                    }}
-                                />
                                 <div className="absolute inset-0 bg-black/20" /> {/* Slight overlay for text readability */}
                             </div>
 

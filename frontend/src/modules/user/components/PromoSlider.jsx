@@ -46,75 +46,76 @@ const PromoSlider = () => {
 
     return (
         <section className="w-full bg-background py-4 md:py-10 px-3 md:px-12 font-['Inter']">
-            <div className="relative w-full h-[220px] md:h-[400px] overflow-hidden rounded-[1.5rem] md:rounded-[2.5rem] shadow-xl bg-black group">
+            <div className="relative w-full overflow-hidden rounded-[1.5rem] md:rounded-[2.5rem] shadow-xl bg-black group">
                 <AnimatePresence mode="wait">
-                    <motion.div
+                    <motion.img
                         key={currentIndex}
                         initial={{ opacity: 0, scale: 1.05 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
                         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                        className="absolute inset-0"
-                    >
-                        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/20 to-transparent z-10" />
-                        <img
-                            src={banners[currentIndex].image}
-                            alt={banners[currentIndex].title}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                                e.target.src = 'https://images.unsplash.com/photo-1596727147705-61a532a659bd?auto=format&fit=crop&w=800&q=80';
-                            }}
-                        />
-
-                        <div className="absolute inset-0 z-20 flex flex-col justify-center px-5 md:px-16 text-white pointer-events-none">
-                            <motion.div
-                                initial={{ y: 15, opacity: 0 }}
-                                animate={{ y: 0, opacity: 1 }}
-                                transition={{ delay: 0.3 }}
-                                className="flex items-center gap-2 md:gap-3 mb-2 md:mb-4"
-                            >
-                                <span className="bg-primary text-white text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] px-2 py-0.5 md:px-3 md:py-1 rounded-full shadow-lg">
-                                    {banners[currentIndex].badgeText}
-                                </span>
-                                <div className="h-[1px] w-8 md:w-12 bg-white/30" />
-                            </motion.div>
-
-                            <motion.h2
-                                initial={{ y: 15, opacity: 0 }}
-                                animate={{ y: 0, opacity: 1 }}
-                                transition={{ delay: 0.4 }}
-                                className="text-xl md:text-5xl font-black mb-2 md:mb-3 font-['Poppins'] leading-tight max-w-xl text-white drop-shadow-md"
-                            >
-                                {banners[currentIndex].title}
-                            </motion.h2>
-
-                            <motion.p
-                                initial={{ y: 15, opacity: 0 }}
-                                animate={{ y: 0, opacity: 1 }}
-                                transition={{ delay: 0.5 }}
-                                className="text-[10px] md:text-lg text-white/80 font-bold max-w-sm mb-6 leading-snug"
-                            >
-                                {banners[currentIndex].subtitle}
-                            </motion.p>
-
-                            <motion.button
-                                initial={{ scale: 0.9, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                transition={{ delay: 0.6 }}
-                                onClick={() => {
-                                    const slide = banners[currentIndex];
-                                    if (slide.link) window.location.href = slide.link;
-                                }}
-                                className="pointer-events-auto bg-primary hover:bg-primaryHover text-white font-bold text-[9px] md:text-sm uppercase tracking-widest px-4 py-2 md:px-6 md:py-3 rounded-full transition-all shadow-xl active:scale-95 w-fit flex items-center gap-2 group/btn"
-                            >
-                                {banners[currentIndex].ctaText || 'Explore Collection'}
-                                <div className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center group-hover/btn:translate-x-1 transition-transform">
-                                    <ChevronRight size={12} />
-                                </div>
-                            </motion.button>
-                        </div>
-                    </motion.div>
+                        src={banners[currentIndex].image}
+                        alt={banners[currentIndex].title}
+                        className="block w-full h-auto"
+                        onError={(e) => {
+                            e.target.src = 'https://images.unsplash.com/photo-1596727147705-61a532a659bd?auto=format&fit=crop&w=800&q=80';
+                        }}
+                    />
                 </AnimatePresence>
+
+                <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/20 to-transparent z-10" />
+
+                <div className="absolute inset-0 z-20 flex flex-col justify-center px-5 md:px-16 text-white pointer-events-none">
+                    <motion.div
+                        key={`badge-${currentIndex}`}
+                        initial={{ y: 15, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.3 }}
+                        className="flex items-center gap-2 md:gap-3 mb-2 md:mb-4"
+                    >
+                        <span className="bg-primary text-white text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] px-2 py-0.5 md:px-3 md:py-1 rounded-full shadow-lg">
+                            {banners[currentIndex].badgeText}
+                        </span>
+                        <div className="h-[1px] w-8 md:w-12 bg-white/30" />
+                    </motion.div>
+
+                    <motion.h2
+                        key={`title-${currentIndex}`}
+                        initial={{ y: 15, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.4 }}
+                        className="text-xl md:text-5xl font-black mb-2 md:mb-3 font-['Poppins'] leading-tight max-w-xl text-white drop-shadow-md"
+                    >
+                        {banners[currentIndex].title}
+                    </motion.h2>
+
+                    <motion.p
+                        key={`subtitle-${currentIndex}`}
+                        initial={{ y: 15, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.5 }}
+                        className="text-[10px] md:text-lg text-white/80 font-bold max-w-sm mb-6 leading-snug"
+                    >
+                        {banners[currentIndex].subtitle}
+                    </motion.p>
+
+                    <motion.button
+                        key={`cta-${currentIndex}`}
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ delay: 0.6 }}
+                        onClick={() => {
+                            const slide = banners[currentIndex];
+                            if (slide.link) window.location.href = slide.link;
+                        }}
+                        className="pointer-events-auto bg-primary hover:bg-primaryHover text-white font-bold text-[9px] md:text-sm uppercase tracking-widest px-4 py-2 md:px-6 md:py-3 rounded-full transition-all shadow-xl active:scale-95 w-fit flex items-center gap-2 group/btn"
+                    >
+                        {banners[currentIndex].ctaText || 'Explore Collection'}
+                        <div className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center group-hover/btn:translate-x-1 transition-transform">
+                            <ChevronRight size={12} />
+                        </div>
+                    </motion.button>
+                </div>
 
                 {/* Controls - Minimal & Hidden until hover */}
                 <div className="absolute inset-0 z-30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-between px-6 pointer-events-none">

@@ -18,21 +18,34 @@ function generateOTP(length = 4) {
     return otp;
 }
 
+function normalizeIndianMobileNumber(mobile) {
+    const digitsOnly = String(mobile || '').replace(/\D/g, '');
+
+    if (!digitsOnly) {
+        throw new Error('Invalid mobile number. Please provide a valid 10-digit Indian mobile number.');
+    }
+
+    if (/^[6-9]\d{9}$/.test(digitsOnly)) {
+        return digitsOnly;
+    }
+
+    if (/^91[6-9]\d{9}$/.test(digitsOnly)) {
+        return digitsOnly.slice(2);
+    }
+
+    if (/^0[6-9]\d{9}$/.test(digitsOnly)) {
+        return digitsOnly.slice(1);
+    }
+
+    throw new Error(`Invalid mobile number: ${digitsOnly}. Please provide a valid 10-digit Indian mobile number.`);
+}
+
 /**
  * Normalize mobile number to include country code (91)
  */
 function normalizeMobileNumber(mobile) {
-    let cleanMobile = mobile.replace(/^\+/, '').replace(/\D/g, '');
-
-    if (!cleanMobile.startsWith('91')) {
-        cleanMobile = '91' + cleanMobile;
-    }
-
-    if (cleanMobile.length < 12 || cleanMobile.length > 13) {
-        throw new Error(`Invalid mobile number: ${cleanMobile}. Must be 12-13 digits with country code.`);
-    }
-
-    return cleanMobile;
+    const localMobile = normalizeIndianMobileNumber(mobile);
+    return `91${localMobile}`;
 }
 
 /**

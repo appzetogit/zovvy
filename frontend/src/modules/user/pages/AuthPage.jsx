@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, Leaf, Tag, Smartphone } from 'lucide-react';
@@ -18,8 +18,22 @@ const AuthPage = () => {
     const queryParams = new URLSearchParams(location.search);
     const redirect = queryParams.get('redirect');
 
+    const normalizePhoneInput = (value) => {
+        const digitsOnly = String(value || '').replace(/\D/g, '');
+
+        if (digitsOnly.length === 12 && digitsOnly.startsWith('91')) {
+            return digitsOnly.slice(2);
+        }
+
+        if (digitsOnly.length === 11 && digitsOnly.startsWith('0')) {
+            return digitsOnly.slice(1);
+        }
+
+        return digitsOnly.slice(0, 10);
+    };
+
     const handleChange = (e) => {
-        setPhone(e.target.value.replace(/\D/g, '').slice(0, 10));
+        setPhone(normalizePhoneInput(e.target.value));
         setError('');
     };
 
