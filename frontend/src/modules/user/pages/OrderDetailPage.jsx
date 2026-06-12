@@ -12,6 +12,7 @@ import OrderInvoice from '../components/OrderInvoice';
 import { motion } from 'framer-motion';
 import { useOrders, useReturns, useUpdateOrderStatus, useCancelOrder } from '../../../hooks/useOrders';
 import { useProducts } from '../../../hooks/useProducts';
+import { useSEO } from '../../../hooks/useSEO';
 
 const API_URL = API_BASE_URL;
 
@@ -26,6 +27,11 @@ const OrderDetailPage = () => {
     const { orderId } = useParams();
     const navigate = useNavigate();
     const { user, getAuthHeaders } = useAuth();
+
+    useSEO({
+        title: orderId ? `Order #${orderId}` : 'Order Details',
+        description: 'View order details and status of your Zovvy Foods order.',
+    });
 
     // Hooks
     const { data: orders = [] } = useOrders(user?.id);
@@ -523,7 +529,7 @@ const OrderDetailPage = () => {
 
             {/* Cancel Confirmation Modal */}
             {showCancelConfirm && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-black/50 z-[10020] flex items-center justify-center p-4">
                     <motion.div
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}

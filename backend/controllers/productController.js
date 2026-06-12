@@ -272,6 +272,12 @@ export const updateProduct = async (req, res) => {
         if (product) {
             // Strip fields that shouldn't be manually updated
             const { _id, __v, createdAt, ...updateData } = req.body;
+
+            // If the product name changes, delete the old slug so that it is regenerated from the new name
+            if (updateData.name && toTrimmedString(updateData.name) !== product.name) {
+                delete updateData.slug;
+            }
+
             const sanitizedUpdateData = sanitizeProductPayload(updateData, { idOverride: product.id });
             const validationError = validateProductPayload(sanitizedUpdateData);
             if (validationError) {

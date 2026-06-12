@@ -125,9 +125,12 @@ function App() {
                 <Route path="vault" element={<VaultPage />} />
                 <Route path="profile/:tab?" element={<ProfilePage />} />
                 <Route path="about-us" element={<InfoPage type="about-us" />} />
+                <Route path="about" element={<Navigate to="/about-us" replace />} />
                 <Route path="privacy-policy" element={<InfoPage type="privacy-policy" />} />
                 <Route path="terms-conditions" element={<InfoPage type="terms-conditions" />} />
                 <Route path="contact-us" element={<InfoPage type="contact-us" />} />
+                <Route path="contact" element={<Navigate to="/contact-us" replace />} />
+                <Route path="products" element={<Navigate to="/catalog" replace />} />
                 <Route path="blogs" element={<BlogsPage />} />
                 <Route path="blog/:slug" element={<BlogDetailPage />} />
                 <Route path="login" element={<AuthPage />} />

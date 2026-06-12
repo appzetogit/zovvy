@@ -3,8 +3,14 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useBlogs } from '../../../hooks/useContent';
+import { useSEO } from '../../../hooks/useSEO';
 
 const BlogsPage = () => {
+    useSEO({
+        title: 'Blogs',
+        description: 'Read the latest stories, recipes, health guides, and updates from the Zovvy Foods blog.',
+    });
+
     const { data: blogs = [], isLoading } = useBlogs();
     const publishedBlogs = blogs.filter((blog) => blog.status === 'Published');
 

@@ -6,7 +6,14 @@ import { motion } from 'framer-motion';
 import authShowcaseImg from '../../../assets/auth_showcase.jpg';
 import logo from '../../../assets/zovvy-logo.png';
 
+import { useSEO } from '../../../hooks/useSEO';
+
 const AuthPage = () => {
+    useSEO({
+        title: 'Login',
+        description: 'Login or register to your Zovvy Foods account to explore premium quality dry fruits, seeds, and healthy snacks.',
+    });
+
     const { sendOtp } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();

@@ -5,9 +5,6 @@ import { Link } from 'react-router-dom';
 import { useBlogs } from '../../../hooks/useContent';
 import toast from 'react-hot-toast';
 
-// Import blog images (fallback/placeholder logic if needed, but data should have URLs)
-import logoImg from '../../../assets/zovvy-logo.png';
-
 const BlogSection = () => {
     const scrollRef = useRef(null);
     const { data: blogPosts = [], isLoading } = useBlogs();
@@ -95,9 +92,6 @@ const BlogSection = () => {
                                         {/* Meta Header */}
                                         <div className="flex justify-between items-center mb-2 text-xs text-gray-500 font-medium">
                                             <div className="flex items-center gap-2">
-                                                <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-white flex items-center justify-center border border-gray-100 overflow-hidden shadow-sm">
-                                                    <img src={logoImg} alt="Zovvy" className="w-full h-full object-cover" />
-                                                </div>
                                                 <div className="flex flex-col">
                                                     <span className="text-gray-900 font-bold">Zovvy</span>
                                                     <span className="text-[10px]">{post.date ? new Date(post.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}</span>

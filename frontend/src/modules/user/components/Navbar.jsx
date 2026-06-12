@@ -212,7 +212,7 @@ const Navbar = () => {
             <div className="hidden md:flex justify-between items-center gap-4 md:gap-8">
                 {/* Logo */}
                 <Link to="/" className="flex-shrink-0 flex items-center gap-1.5 relative">
-                    <img src={logo} alt="FarmLyf" className="h-7 md:h-9 w-auto object-contain" />
+                    <img src={logo} alt="Zovvy Foods Logo" className="h-7 md:h-9 w-auto object-contain" />
                     {user?.accountType === 'Business' && (
                         <span className="absolute -top-1 -right-8 bg-black text-white text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter">Business</span>
                     )}
@@ -327,7 +327,7 @@ const Navbar = () => {
                                                     onClick={() => { setSearchQuery(''); setShowSuggestions(false); }}
                                                     className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors"
                                                 >
-                                                    <img src={p.image} className="w-8 h-8 object-contain mix-blend-multiply" alt="" />
+                                                    <img src={p.image} className="w-8 h-8 object-contain mix-blend-multiply" alt={p.name} />
                                                     <div>
                                                         <div className="text-sm font-bold text-footerBg">{p.name}</div>
                                                     </div>
@@ -515,7 +515,7 @@ const Navbar = () => {
 
                 {/* Centered Logo */}
                 <Link to="/" className="flex-shrink-0 absolute left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2 flex items-center gap-1">
-                    <img src={logo} alt="FarmLyf" className="h-6 w-auto object-contain" />
+                    <img src={logo} alt="Zovvy Foods Logo" className="h-6 w-auto object-contain" />
                     {user?.accountType === 'Business' && (
                         <span className="bg-black text-white text-[7px] font-black px-1 py-0.5 rounded uppercase leading-none">Business</span>
                     )}
@@ -651,7 +651,7 @@ const Navbar = () => {
                                             }}
                                             className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50"
                                         >
-                                            <img src={p.image} alt="" className="w-8 h-8 object-contain" />
+                                            <img src={p.image} alt={p.name} className="w-8 h-8 object-contain" />
                                             <span className="text-sm font-semibold text-footerBg">{p.name}</span>
                                         </Link>
                                     ))
@@ -688,7 +688,7 @@ const Navbar = () => {
                             <div className="flex flex-col h-full text-white">
                                 {/* Header */}
                                 <div className="flex items-center justify-between p-5 border-b border-gray-800">
-                                    <img src={logo} alt="FarmLyf" className="h-6 w-auto object-contain brightness-0 invert" />
+                                    <img src={logo} alt="Zovvy Foods Logo" className="h-6 w-auto object-contain brightness-0 invert" />
                                     <button
                                         onClick={() => setIsMobileMenuOpen(false)}
                                         className="p-2 bg-gray-800 rounded-full hover:bg-gray-700 transition-colors text-white"

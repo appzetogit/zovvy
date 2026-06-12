@@ -33,6 +33,8 @@ const HeroSection = () => {
 
     const [currentIndex, setCurrentIndex] = useState(0);
 
+    const currentSlide = banners[currentIndex];
+
     const [promoSettings, setPromoSettings] = useState({
         badgeText1: 'Upto',
         discountTitle: '60',
@@ -66,7 +68,6 @@ const HeroSection = () => {
         fetchPromoSettings();
     }, []);
 
-    const currentSlide = banners[currentIndex];
     const currentPromoSettings = {
         ...promoSettings,
         ...(currentSlide?.promoCard || {})
@@ -130,7 +131,7 @@ const HeroSection = () => {
                             </div>
 
                             {/* Left Side Content */}
-                            <div className="z-30 space-y-0.5 md:space-y-2 max-w-[75%] md:max-w-md mt-12 md:mt-16 md:ml-4 relative text-shadow-sm">
+                            <div className="z-30 space-y-0.5 md:space-y-2 max-w-[75%] md:max-w-md md:ml-4 relative text-shadow-sm">
                                 <motion.div
                                     initial={{ y: 20, opacity: 0 }}
                                     animate={{ y: 0, opacity: 1 }}
@@ -180,7 +181,7 @@ const HeroSection = () => {
 
                     {/* Static Branding Overlay */}
                     <div className="absolute top-3 left-4 md:left-12 z-40 bg-white/10 backdrop-blur-md px-2 py-1 md:px-3 md:py-1.5 rounded-lg border border-white/20">
-                        <span className="text-[8px] md:text-[10px] tracking-[0.1em] md:tracking-[0.2em] uppercase text-white/80 font-bold block">Passion for Nutrition</span>
+                        <span className="text-[8px] md:text-[10px] tracking-[0.1em] md:tracking-[0.2em] uppercase text-black font-bold block">Passion for Nutrition</span>
                         <div className="flex items-center gap-1 md:gap-1.5">
                             <img src={logo} alt="FarmLyf" className="h-4 md:h-6 w-auto object-contain" />
                         </div>

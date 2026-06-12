@@ -12,7 +12,14 @@ import { useUserProfile, useUpdateProfile } from '../../../hooks/useUser';
 import { useActiveCoupons } from '../../../hooks/useCoupons';
 
 
+import { useSEO } from '../../../hooks/useSEO';
+
 const ProfilePage = () => {
+    useSEO({
+        title: 'My Profile',
+        description: 'View and update your Zovvy Foods account profile, saved addresses, and active coupons.',
+    });
+
     const navigate = useNavigate();
     const { user, loading: authLoading, logout } = useAuth();
     const { data: userData, isLoading: profileLoading, isError: profileError } = useUserProfile();

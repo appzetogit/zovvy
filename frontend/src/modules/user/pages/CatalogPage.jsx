@@ -16,6 +16,7 @@ import {
     Check
 } from 'lucide-react';
 import { useProducts, useCategories, useSubCategories, useComboCategories } from '../../../hooks/useProducts';
+import { useSEO } from '../../../hooks/useSEO';
 import ProductCard from '../components/ProductCard';
 
 const normalizeSlug = (value) => String(value ?? '')
@@ -276,6 +277,38 @@ const CatalogPage = () => {
             setSelectedSubcategory('all');
         }
     }, [category, subCategory, searchParams, categoriesData, findCategoryByRef, findSubCategoryByRef, getSubCategoryParent, subCategories]);
+
+    const seoTitle = useMemo(() => {
+        if (selectedCategory === 'all' && selectedSubcategory === 'all') {
+            return 'Shop Online';
+        }
+        
+        let catName = '';
+        if (selectedCategory !== 'all') {
+            const catObj = findCategoryByRef(selectedCategory);
+            catName = catObj ? catObj.name : selectedCategory;
+        }
+
+        let subName = '';
+        if (selectedSubcategory !== 'all') {
+            const subObj = findSubCategoryByRef(selectedSubcategory);
+            subName = subObj ? subObj.name : selectedSubcategory;
+        }
+
+        if (subName && catName) {
+            return `${subName} - ${catName}`;
+        } else if (catName) {
+            return catName;
+        } else if (subName) {
+            return subName;
+        }
+        return 'Shop';
+    }, [selectedCategory, selectedSubcategory, findCategoryByRef, findSubCategoryByRef]);
+
+    useSEO({
+        title: seoTitle,
+        description: `Explore premium quality dry fruits, nuts, seeds and healthy snacks in our ${seoTitle} category at Zovvy Foods.`,
+    });
 
     const activeComboCategoryNames = useMemo(() => {
         return comboCategories

@@ -7,6 +7,7 @@ import HomePageSkeleton from '../components/HomePageSkeleton';
 import { useBanners } from '../../../hooks/useContent';
 import { useCategories } from '../../../hooks/useProducts';
 import { useFeaturedSectionByName } from '../../../hooks/useContent';
+import { useSEO } from '../../../hooks/useSEO';
 
 const WhyChooseUs = lazy(() => import('../components/WhyChooseUs'));
 const AboutSection = lazy(() => import('../components/AboutSection'));
@@ -29,6 +30,12 @@ const SectionSkeleton = () => (
 );
 
 const HomePage = () => {
+    useSEO({
+        title: 'Zovvy Foods | Premium Dry Fruits & Healthy Snacks',
+        description: 'Buy premium quality dry fruits, nuts, seeds and healthy snacks online from Zovvy Foods.',
+        keywords: 'dry fruits, almonds, cashews, pistachios, healthy snacks, zovvy foods'
+    });
+
     const { data: banners = [], isLoading: bannersLoading } = useBanners();
     const { data: categories = [], isLoading: categoriesLoading } = useCategories();
     const { data: topSellingData, isLoading: topSellingLoading } = useFeaturedSectionByName('top-selling');

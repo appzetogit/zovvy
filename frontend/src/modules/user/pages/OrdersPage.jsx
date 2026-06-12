@@ -6,7 +6,14 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Package, ChevronRight, Clock, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+import { useSEO } from '../../../hooks/useSEO';
+
 const OrdersPage = () => {
+    useSEO({
+        title: 'My Orders',
+        description: 'Track and view your recent order history and delivery status at Zovvy Foods.',
+    });
+
     const navigate = useNavigate();
     const { user } = useAuth();
     const { data: orders = [] } = useOrders(user?.id); // useOrders hook

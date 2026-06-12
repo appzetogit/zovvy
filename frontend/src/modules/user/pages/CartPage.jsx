@@ -54,7 +54,14 @@ import { useProducts } from '../../../hooks/useProducts';
 import { enrichCartItems } from '../../../utils/cartItems';
 
 
+import { useSEO } from '../../../hooks/useSEO';
+
 const CartPage = () => {
+    useSEO({
+        title: 'Shopping Bag',
+        description: 'Review the items in your shopping bag before checking out at Zovvy Foods.',
+    });
+
     const navigate = useNavigate();
     const { user } = useAuth();
 

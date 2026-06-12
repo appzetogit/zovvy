@@ -8,7 +8,14 @@ import { useAuth } from '../../../context/AuthContext';
 const FULL_NAME_REGEX = /^[A-Za-z ]+$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+import { useSEO } from '../../../hooks/useSEO';
+
 const OTPPage = () => {
+    useSEO({
+        title: 'OTP Verification',
+        description: 'Verify your phone number with OTP to login to your Zovvy Foods account.',
+    });
+
     const { verifyOtp, sendOtp } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
