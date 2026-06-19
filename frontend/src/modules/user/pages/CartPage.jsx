@@ -51,6 +51,7 @@ const DUMMY_PRODUCTS = [
 import useCartStore from '../../../store/useCartStore';
 import useUserStore from '../../../store/useUserStore';
 import { useProducts } from '../../../hooks/useProducts';
+import { useSetting } from '../../../hooks/useSettings';
 import { enrichCartItems } from '../../../utils/cartItems';
 
 
@@ -75,6 +76,7 @@ const CartPage = () => {
 
     // Data Hooks
     const { data: products = [] } = useProducts();
+    const { data: checkoutFeeSetting } = useSetting('checkout_fee_config');
 
 
     // Helpers (moved from Context or re-implemented)
@@ -140,6 +142,14 @@ const CartPage = () => {
     const enrichedSaved = enrichCartItems(savedItems, products);
 
     const subtotal = enrichedCart.reduce((acc, item) => acc + (item.price || 0) * item.qty, 0);
+    const feeConfigValue = checkoutFeeSetting?.value;
+    const freeDeliveryAmount = Number(
+        feeConfigValue && typeof feeConfigValue === 'object' && !Array.isArray(feeConfigValue)
+            ? feeConfigValue.freeDeliveryAmount || 0
+            : 0
+    );
+    const qualifiesForFreeDelivery = freeDeliveryAmount > 0 && subtotal >= freeDeliveryAmount;
+    const amountLeftForFreeDelivery = Math.max(0, freeDeliveryAmount - subtotal);
 
     if (enrichedCart.length === 0) {
         return (
@@ -248,6 +258,19 @@ const CartPage = () => {
                                     <span>Subtotal</span>
                                     <span className="font-bold text-footerBg">₹{subtotal}</span>
                                 </div>
+                                <div className="flex justify-between text-gray-500">
+                                    <span>Delivery Fee</span>
+                                    <span className={`font-bold ${qualifiesForFreeDelivery ? 'text-emerald-500' : 'text-footerBg'}`}>
+                                        {qualifiesForFreeDelivery ? 'FREE' : 'Calculated at checkout'}
+                                    </span>
+                                </div>
+                                {freeDeliveryAmount > 0 && (
+                                    <div className={`rounded-xl px-3 py-2 text-[10px] md:text-xs font-bold ${qualifiesForFreeDelivery ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-amber-50 text-amber-600 border border-amber-100'}`}>
+                                        {qualifiesForFreeDelivery
+                                            ? `Free delivery unlocked on orders above Rs. ${freeDeliveryAmount}.`
+                                            : `Add items worth Rs. ${amountLeftForFreeDelivery} more to unlock free delivery at Rs. ${freeDeliveryAmount}.`}
+                                    </div>
+                                )}
 
                                 <div className="pt-2 md:pt-4 border-t border-gray-100 flex justify-between text-base md:text-xl font-black text-footerBg">
                                     <span>Total Amount</span>

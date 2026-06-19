@@ -13,7 +13,8 @@ const SettingsPage = () => {
     const [checkoutFees, setCheckoutFees] = useState({
         paymentHandlingFee: 0,
         platformFee: 0,
-        handlingFee: 0
+        handlingFee: 0,
+        freeDeliveryAmount: 0
     });
     const [invoiceSettings, setInvoiceSettings] = useState({
         sellerName: '',
@@ -48,7 +49,8 @@ const SettingsPage = () => {
         setCheckoutFees({
             paymentHandlingFee: Number(value.paymentHandlingFee || 0),
             platformFee: Number(value.platformFee || 0),
-            handlingFee: Number(value.handlingFee || 0)
+            handlingFee: Number(value.handlingFee || 0),
+            freeDeliveryAmount: Number(value.freeDeliveryAmount || 0)
         });
     }, [checkoutFeeConfigSetting]);
 
@@ -177,7 +179,7 @@ const SettingsPage = () => {
                                 <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest">Checkout Fees</h4>
                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Used in checkout price details breakdown</p>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                                 <div className="flex flex-col gap-2">
                                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Payment Handling Fee</label>
                                     <input
@@ -205,6 +207,16 @@ const SettingsPage = () => {
                                         min="0"
                                         value={checkoutFees.handlingFee}
                                         onChange={(e) => handleFeeInputChange('handlingFee', e.target.value)}
+                                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-black/5 transition-all"
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Free Delivery Amount</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={checkoutFees.freeDeliveryAmount}
+                                        onChange={(e) => handleFeeInputChange('freeDeliveryAmount', e.target.value)}
                                         className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-black/5 transition-all"
                                     />
                                 </div>

@@ -347,7 +347,11 @@ const CheckoutPage = () => {
     const paymentHandlingFee = parseFeeAmount(feeConfig.paymentHandlingFee);
     const platformFee = parseFeeAmount(feeConfig.platformFee);
     const handlingFee = parseFeeAmount(feeConfig.handlingFee);
-    const totalAdditionalFees = paymentHandlingFee + platformFee + handlingFee + shippingCharge;
+    const freeDeliveryAmount = parseFeeAmount(feeConfig.freeDeliveryAmount);
+    const qualifiesForFreeDelivery = freeDeliveryAmount > 0 && subtotal >= freeDeliveryAmount;
+    const effectiveShippingCharge = qualifiesForFreeDelivery ? 0 : shippingCharge;
+    const effectiveFreeShippingApplied = qualifiesForFreeDelivery || Boolean(shippingQuote.freeShippingApplied);
+    const totalAdditionalFees = paymentHandlingFee + platformFee + handlingFee + effectiveShippingCharge;
     const mrpDiscount = Math.max(0, mrpTotal - subtotal);
     const total = Math.max(0, subtotal + totalAdditionalFees - couponDiscount);
 
@@ -505,7 +509,7 @@ const CheckoutPage = () => {
             shippingAddress: normalizedFormData,
             paymentMethod: paymentMethod,
             subtotal,
-            deliveryCharges: shippingCharge,
+            deliveryCharges: effectiveShippingCharge,
             additionalFees: {
                 paymentHandlingFee,
                 platformFee,
@@ -516,9 +520,10 @@ const CheckoutPage = () => {
                 courierName: shippingQuote.courierName,
                 courierId: shippingQuote.courierId,
                 estimatedDays: shippingQuote.estimatedDays,
-                shippingCharge,
+                shippingCharge: effectiveShippingCharge,
                 rawShippingCharge,
-                freeShippingApplied: Boolean(shippingQuote.freeShippingApplied),
+                freeShippingApplied: effectiveFreeShippingApplied,
+                freeDeliveryAmount,
                 weight: shippingQuote.weight,
                 length: shippingQuote.length,
                 breadth: shippingQuote.breadth,
@@ -979,22 +984,27 @@ const CheckoutPage = () => {
                                         </div>
                                         <div className="flex justify-between">
                                             <span>Delivery Fee</span>
-                                            <span className={`${shippingCharge > 0 ? 'text-footerBg' : 'text-emerald-500'} font-semibold`}>
+                                            <span className={`${effectiveShippingCharge > 0 ? 'text-footerBg' : 'text-emerald-500'} font-semibold`}>
                                                 {shippingQuote.loading ? (
                                                     'Calculating...'
-                                                ) : shippingQuote.freeShippingApplied && rawShippingCharge > 0 ? (
+                                                ) : effectiveFreeShippingApplied && rawShippingCharge > 0 ? (
                                                     <span className="flex items-center gap-2">
                                                         <del className="text-gray-400 font-medium">{formatINR(rawShippingCharge)}</del>
                                                         <span className="text-emerald-500">FREE</span>
                                                     </span>
-                                                ) : shippingCharge > 0 ? (
-                                                    formatINR(shippingCharge)
+                                                ) : effectiveShippingCharge > 0 ? (
+                                                    formatINR(effectiveShippingCharge)
                                                 ) : (
                                                     'FREE'
                                                 )}
                                             </span>
                                         </div>
                                     </div>
+                                    {qualifiesForFreeDelivery && (
+                                        <div className="mt-2 rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2.5 text-[10px] md:text-[11px] font-semibold text-emerald-600">
+                                            Free delivery applied because your cart subtotal is above {formatINR(freeDeliveryAmount)}.
+                                        </div>
+                                    )}
                                     {(shippingQuote.courierName || shippingQuote.error || shippingQuote.source) && (
                                         <div className="mt-2 rounded-xl bg-gray-50 border border-gray-100 px-3 py-2.5 text-[10px] md:text-[11px] text-gray-500 space-y-1.5">
                                             {shippingQuote.loading && <span>Checking live shipping rates...</span>}
@@ -1006,12 +1016,12 @@ const CheckoutPage = () => {
                                                     <div className="flex justify-between gap-4">
                                                         <span>Delivery charge</span>
                                                         <span className="font-semibold text-footerBg">
-                                                            {shippingQuote.freeShippingApplied && rawShippingCharge > 0 ? (
+                                                            {effectiveFreeShippingApplied && rawShippingCharge > 0 ? (
                                                                 <span className="flex items-center gap-2">
                                                                     <del className="text-gray-400 font-medium">{formatINR(rawShippingCharge)}</del>
                                                                     <span className="text-emerald-500">FREE</span>
                                                                 </span>
-                                                            ) : shippingQuote.freeShippingApplied ? 'FREE' : formatINR(shippingQuote.shippingCharge)}
+                                                            ) : effectiveFreeShippingApplied ? 'FREE' : formatINR(effectiveShippingCharge)}
                                                         </span>
                                                     </div>
                                                     {(shippingQuote.estimatedDays || shippingQuote.weight) && (
