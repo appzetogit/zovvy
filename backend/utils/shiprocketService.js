@@ -182,6 +182,58 @@ class ShiprocketService {
   }
 
   /**
+   * Create the shipment for an order and assign a courier/AWB.
+   * Mutates and saves the order. Never throws: shipment failures must not
+   * break the calling request.
+   * @returns {Promise<boolean>} true if an AWB was assigned
+   */
+  async createShipmentForOrder(order) {
+    if (!this.isConfigured()) {
+      console.log('Shiprocket not configured, skipping shipment creation');
+      return false;
+    }
+
+    try {
+      const shiprocketResponse = await this.createOrder(order);
+      if (!shiprocketResponse || !shiprocketResponse.order_id) return false;
+
+      order.shiprocketOrderId = shiprocketResponse.order_id;
+      order.shiprocketShipmentId = shiprocketResponse.shipment_id;
+
+      let assigned = false;
+      try {
+        const selectedCourierId = Number(order.shippingQuote?.courierId || 0) || null;
+        const awbResponse = await this.assignAWB(shiprocketResponse.shipment_id, selectedCourierId);
+        const awbData = awbResponse?.response?.data;
+
+        if (awbData?.awb_code) {
+          order.awbCode = awbData.awb_code;
+          order.courierName = awbData.courier_name;
+          assigned = true;
+          console.log(`AWB assigned successfully: ${awbData.awb_code} via ${awbData.courier_name}`);
+
+          try {
+            await this.generatePickup(shiprocketResponse.shipment_id);
+            console.log('Pickup generated successfully');
+          } catch (pickupError) {
+            console.error('Pickup generation failed:', pickupError.message);
+          }
+        } else {
+          console.error('AWB assignment returned no AWB code:', awbResponse);
+        }
+      } catch (awbError) {
+        console.error('AWB assignment failed:', awbError.message);
+      }
+
+      await order.save();
+      return assigned;
+    } catch (shiprocketError) {
+      console.error('Shiprocket integration failed:', shiprocketError.message);
+      return false;
+    }
+  }
+
+  /**
    * Check if Shiprocket credentials are configured
    */
   isConfigured() {

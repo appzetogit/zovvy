@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 // import { useShop } from '../../../context/ShopContext'; // Removed
 import { useAuth } from '../../../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, CreditCard, Banknote, Truck, Tag, X, Percent } from 'lucide-react';
+import { ArrowLeft, CreditCard, Banknote, Truck, Tag, X, Percent, MapPin, Loader2 } from 'lucide-react';
 import CouponsModal from '../components/CouponsModal';
 import logo from '../../../assets/zovvy-logo.png';
 import toast from 'react-hot-toast';
@@ -181,6 +181,7 @@ const CheckoutPage = () => {
 
     const [paymentMethod, setPaymentMethod] = useState('cod');
     const [loading, setLoading] = useState(false);
+    const [isLocating, setIsLocating] = useState(false);
     const [shippingQuote, setShippingQuote] = useState({
         loading: false,
         shippingCharge: 0,
@@ -398,6 +399,44 @@ const CheckoutPage = () => {
         }
 
         setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    // Fills the address fields from the device location via Google Geocoding.
+    const handleUseMyLocation = () => {
+        if (!navigator.geolocation) {
+            toast.error('Location is not supported on this device');
+            return;
+        }
+
+        setIsLocating(true);
+        navigator.geolocation.getCurrentPosition(
+            async ({ coords }) => {
+                try {
+                    const res = await fetch(`${API_BASE_URL}/location/reverse?lat=${coords.latitude}&lng=${coords.longitude}`);
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.message || 'Could not detect your address');
+
+                    setSelectedAddressId('manual');
+                    setFormData(prev => ({
+                        ...prev,
+                        address: data.address || prev.address,
+                        city: data.city || prev.city,
+                        state: data.state || prev.state,
+                        pincode: String(data.pincode || prev.pincode).replace(/\D/g, '').slice(0, 6)
+                    }));
+                    toast.success('Address filled from your location. Please check the house/flat details.');
+                } catch (error) {
+                    toast.error(error.message || 'Could not detect your address');
+                } finally {
+                    setIsLocating(false);
+                }
+            },
+            () => {
+                setIsLocating(false);
+                toast.error('Location permission denied');
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
     };
 
     const handleApplyCoupon = async () => {
@@ -756,6 +795,17 @@ const CheckoutPage = () => {
                                                 />
                                             </div>
                                         </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleUseMyLocation}
+                                            disabled={isLocating}
+                                            className="flex items-center gap-2 text-[11px] md:text-xs font-bold text-primary uppercase tracking-wide disabled:opacity-50"
+                                        >
+                                            {isLocating
+                                                ? <Loader2 size={14} className="animate-spin" />
+                                                : <MapPin size={14} />}
+                                            {isLocating ? 'Detecting location...' : 'Use my current location'}
+                                        </button>
                                         <div className="space-y-1 text-left">
                                             <label className="text-[10px] md:text-xs font-bold text-gray-400 uppercase">Detailed Address</label>
                                             <textarea

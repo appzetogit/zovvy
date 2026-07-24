@@ -5,7 +5,6 @@ import User from '../models/User.js';
 import Referral from '../models/Referral.js';
 import Product from '../models/Product.js';
 import asyncHandler from 'express-async-handler';
-import shiprocketService from '../utils/shiprocketService.js';
 import { validateOrderStock, deductStock } from '../utils/stockUtils.js';
 import { sendAdminOrderNotification } from '../utils/notificationUtils.js';
 
@@ -159,59 +158,8 @@ export const verifyPayment = asyncHandler(async (req, res) => {
             }
         }
 
-        // Create shipment in Shiprocket for prepaid orders (only if configured)
-        if (shiprocketService.isConfigured()) {
-            try {
-                const shiprocketResponse = await shiprocketService.createOrder(newOrder);
-                
-                if (shiprocketResponse && shiprocketResponse.order_id) {
-                    newOrder.shiprocketOrderId = shiprocketResponse.order_id;
-                    newOrder.shiprocketShipmentId = shiprocketResponse.shipment_id;
-                    const selectedCourierId = Number(newOrder.shippingQuote?.courierId || 0) || null;
-                    
-                    // Assign AWB automatically
-                    try {
-                        const awbResponse = await shiprocketService.assignAWB(
-                            shiprocketResponse.shipment_id,
-                            selectedCourierId
-                        );
-                        
-                        // Validate AWB response structure
-                        if (awbResponse && awbResponse.response && awbResponse.response.data) {
-                            const awbCode = awbResponse.response.data.awb_code;
-                            const courierName = awbResponse.response.data.courier_name;
-                            
-                            if (awbCode) {
-                                newOrder.awbCode = awbCode;
-                                newOrder.courierName = courierName;
-                                console.log(`AWB assigned successfully: ${awbCode} via ${courierName}`);
-                                
-                                // Only generate pickup if AWB was successfully assigned
-                                try {
-                                    await shiprocketService.generatePickup(shiprocketResponse.shipment_id);
-                                    console.log('Pickup generated successfully');
-                                } catch (pickupError) {
-                                    console.error('Pickup generation failed:', pickupError.message);
-                                }
-                            } else {
-                                console.error('AWB assignment returned no AWB code');
-                            }
-                        } else {
-                            console.error('Invalid AWB response structure:', awbResponse);
-                        }
-                    } catch (awbError) {
-                        console.error('AWB assignment failed:', awbError.message);
-                    }
-                    
-                    await newOrder.save();
-                }
-            } catch (shiprocketError) {
-                console.error('Shiprocket integration failed:', shiprocketError.message);
-                // Don't fail the order if Shiprocket fails
-            }
-        } else {
-            console.log('Shiprocket not configured, skipping shipment creation');
-        }
+        // No shipment yet: the courier is assigned only once an admin accepts the
+        // order (POST /api/orders/:orderId/accept), so fake orders cost nothing.
 
         // Send notification to Admin
         try {
@@ -289,59 +237,8 @@ export const createCODOrder = asyncHandler(async (req, res) => {
             }
         }
 
-        // Create shipment in Shiprocket (only if configured)
-        if (shiprocketService.isConfigured()) {
-            try {
-                const shiprocketResponse = await shiprocketService.createOrder(newOrder);
-                
-                if (shiprocketResponse && shiprocketResponse.order_id) {
-                    newOrder.shiprocketOrderId = shiprocketResponse.order_id;
-                    newOrder.shiprocketShipmentId = shiprocketResponse.shipment_id;
-                    const selectedCourierId = Number(newOrder.shippingQuote?.courierId || 0) || null;
-                    
-                    // Assign AWB automatically
-                    try {
-                        const awbResponse = await shiprocketService.assignAWB(
-                            shiprocketResponse.shipment_id,
-                            selectedCourierId
-                        );
-                        
-                        // Validate AWB response structure
-                        if (awbResponse && awbResponse.response && awbResponse.response.data) {
-                            const awbCode = awbResponse.response.data.awb_code;
-                            const courierName = awbResponse.response.data.courier_name;
-                            
-                            if (awbCode) {
-                                newOrder.awbCode = awbCode;
-                                newOrder.courierName = courierName;
-                                console.log(`AWB assigned successfully: ${awbCode} via ${courierName}`);
-                                
-                                // Only generate pickup if AWB was successfully assigned
-                                try {
-                                    await shiprocketService.generatePickup(shiprocketResponse.shipment_id);
-                                    console.log('Pickup generated successfully');
-                                } catch (pickupError) {
-                                    console.error('Pickup generation failed:', pickupError.message);
-                                }
-                            } else {
-                                console.error('AWB assignment returned no AWB code');
-                            }
-                        } else {
-                            console.error('Invalid AWB response structure:', awbResponse);
-                        }
-                    } catch (awbError) {
-                        console.error('AWB assignment failed:', awbError.message);
-                    }
-                    
-                    await newOrder.save();
-                }
-            } catch (shiprocketError) {
-                console.error('Shiprocket integration failed:', shiprocketError.message);
-                // Don't fail the order creation if Shiprocket fails
-            }
-        } else {
-            console.log('Shiprocket not configured, skipping shipment creation');
-        }
+        // No shipment yet: the courier is assigned only once an admin accepts the
+        // order (POST /api/orders/:orderId/accept), so fake orders cost nothing.
 
         // Send notification to Admin
         try {

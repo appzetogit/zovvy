@@ -302,6 +302,49 @@ export const getOrdersByUser = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc    Admin accepts an order; only then is the courier assigned
+// @route   POST /api/orders/:orderId/accept
+// @access  Private/Admin
+export const acceptOrder = asyncHandler(async (req, res) => {
+  const { orderId } = req.params;
+
+  let order = await Order.findOne({ id: orderId });
+  if (!order && mongoose.isValidObjectId(orderId)) {
+    order = await Order.findById(orderId);
+  }
+
+  if (!order) {
+    return res.status(404).json({ message: 'Order not found' });
+  }
+
+  if (order.acceptedAt) {
+    return res.status(400).json({ message: 'Order is already accepted' });
+  }
+
+  if (String(order.status).toLowerCase() === 'cancelled') {
+    return res.status(400).json({ message: 'Cannot accept a cancelled order' });
+  }
+
+  order.acceptedAt = new Date();
+  if (!order.statusHistory) order.statusHistory = [];
+  order.statusHistory.push({
+    status: order.status,
+    timestamp: order.acceptedAt,
+    info: 'Order accepted by admin. Assigning courier.'
+  });
+  await order.save();
+
+  const awbAssigned = await shiprocketService.createShipmentForOrder(order);
+
+  res.json({
+    message: awbAssigned
+      ? `Order accepted. Courier assigned (${order.courierName}, AWB ${order.awbCode}).`
+      : 'Order accepted. Courier assignment pending.',
+    awbAssigned,
+    order
+  });
+});
+
 // @desc    Update an order (status, delivery status, etc.)
 // @route   PUT /api/orders/:orderId
 // @access  Private/Admin

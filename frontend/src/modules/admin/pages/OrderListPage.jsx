@@ -293,7 +293,9 @@ const OrderListPage = () => {
                                             </div>
                                         ) : (
                                             <div className="flex items-center gap-2">
-                                                <span className="text-xs font-medium text-gray-400 uppercase">Pending</span>
+                                                <span className="text-xs font-medium text-gray-400 uppercase">
+                                                    {order.acceptedAt || order.status === 'Cancelled' ? 'Pending' : 'Not Accepted'}
+                                                </span>
                                                 {order.status === 'Cancelled' && (
                                                     <span className="text-[8px] font-black text-red-400 uppercase px-1.5 py-0.5 rounded border border-red-100 bg-red-50">Cancelled</span>
                                                 )}

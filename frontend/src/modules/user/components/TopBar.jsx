@@ -9,7 +9,7 @@ const TopBar = () => {
     const displayText = topBarAnnouncement?.text || "Free Shipping On Orders Above ₹1499/-";
 
     return (
-        <div className="bg-footerBg text-surface text-[11px] py-1.5 px-4 md:px-12 flex justify-between items-center tracking-wide z-50 relative">
+        <div className="bg-footerBg text-surface text-[11px] py-1.5 px-4 md:px-12 flex justify-center md:justify-between items-center text-center md:text-left tracking-wide z-50 relative">
             <div className="flex items-center gap-2">
                 <span className="font-medium">{displayText}</span>
             </div>

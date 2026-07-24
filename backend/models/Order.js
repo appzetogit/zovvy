@@ -79,6 +79,7 @@ const orderSchema = new mongoose.Schema({
   refundCurrency: { type: String, default: 'INR' },
   refundProcessedAt: Date,
   refundFailureReason: String,
+  acceptedAt: Date, // Admin accepted the order; courier is assigned only after this
   cancelledAt: Date,
   cancellationReason: String
 }, { timestamps: true });

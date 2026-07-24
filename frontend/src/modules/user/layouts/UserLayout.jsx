@@ -47,9 +47,7 @@ const UserLayout = () => {
     return (
         <div className="flex flex-col min-h-screen font-sans bg-background overflow-x-hidden">
             <header ref={headerRef} className="fixed top-0 inset-x-0 shadow-md flex flex-col shrink-0 bg-white" style={{ zIndex: 100 }}>
-                <div className="hidden md:block">
-                    <TopBar />
-                </div>
+                <TopBar />
                 <Navbar />
                 <div className="hidden md:block">
                     <CategoryNav />

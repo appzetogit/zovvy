@@ -54,6 +54,7 @@ const OrderDetailPage = () => {
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [cancelReason, setCancelReason] = useState('');
     const [cancelReasonError, setCancelReasonError] = useState('');
+    const [isAccepting, setIsAccepting] = useState(false);
     const queryClient = useQueryClient();
     const { data: checkoutFeeConfigSetting } = useSetting('checkout_fee_config');
 
@@ -130,6 +131,28 @@ const OrderDetailPage = () => {
             }
         } catch (error) {
             toast.error('Network error updating status');
+        }
+    };
+
+    // Courier is assigned only here, once the admin accepts the order.
+    const handleAcceptOrder = async () => {
+        setIsAccepting(true);
+        try {
+            const res = await fetch(`${API_URL}/orders/${order._id || order.id}/accept`, { method: 'POST' });
+            const data = await res.json();
+            if (res.ok) {
+                queryClient.invalidateQueries({ queryKey: ['order', id] });
+                queryClient.invalidateQueries({ queryKey: ['orders'] });
+                queryClient.invalidateQueries({ queryKey: ['all-orders'] });
+                queryClient.invalidateQueries({ queryKey: ['orderStats'] });
+                toast.success(data.message || 'Order accepted');
+            } else {
+                toast.error(data.message || 'Failed to accept order');
+            }
+        } catch (error) {
+            toast.error('Network error accepting order');
+        } finally {
+            setIsAccepting(false);
         }
     };
 
@@ -552,8 +575,27 @@ const OrderDetailPage = () => {
                 {/* Right Column: Customer, Timeline, Actions */}
                 <div className="space-y-6">
 
+                    {/* 8a. Accept Order — gate before any courier is assigned */}
+                    {!order.acceptedAt && status !== 'Cancelled' && (
+                        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-3">
+                            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Awaiting Acceptance</h3>
+                            <p className="text-xs text-gray-500">No courier is assigned until you accept this order.</p>
+                            <button
+                                onClick={handleAcceptOrder}
+                                disabled={isAccepting}
+                                className="w-full flex items-center justify-center gap-2 bg-emerald-600 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 disabled:opacity-50"
+                            >
+                                {isAccepting ? (
+                                    <><RefreshCw size={14} className="animate-spin" /> Accepting...</>
+                                ) : (
+                                    <><Check size={16} /> Accept Order</>
+                                )}
+                            </button>
+                        </div>
+                    )}
+
                     {/* 8. Admin Actions (For New Orders) */}
-                    {status === 'Processing' && (
+                    {order.acceptedAt && status === 'Processing' && (
                         <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-3">
                             <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Admin Actions</h3>
                             <div className="grid grid-cols-2 gap-3">

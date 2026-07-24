@@ -34,6 +34,7 @@ import notificationRoutes from './routes/notificationRoutes.js';
 import offerRoutes from './routes/offerRoutes.js';
 import replacementRoutes from './routes/replacementRoutes.js';
 import contactSubmissionRoutes from './routes/contactSubmissionRoutes.js';
+import locationRoutes from './routes/locationRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -125,6 +126,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/offers', offerRoutes);
 app.use('/api/replacements', replacementRoutes);
 app.use('/api/contact-submissions', contactSubmissionRoutes);
+app.use('/api/location', locationRoutes);
 
 // 404 Handler
 app.use((req, res) => {

@@ -48,6 +48,19 @@ import { useAuth } from '../../../context/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import logo from '../../../assets/zovvy-logo.png';
 
+const SEEN_KEY = 'adminOrderSeenCounts';
+
+const readSeenCounts = () => {
+    try { return JSON.parse(localStorage.getItem(SEEN_KEY)) || {}; } catch { return {}; }
+};
+
+const bucketCounts = (stats = {}) => [
+    { key: 'All', label: 'All Order', count: stats.All || 0, color: 'bg-pink-500', icon: ShoppingCart, path: '/admin/orders?status=All' },
+    { key: 'Pending', label: 'Pending Order', count: (stats.Processing || 0) + (stats.pending || 0), color: 'bg-orange-500', icon: Clock, path: '/admin/orders?status=Processing' },
+    { key: 'Delivered', label: 'Delivered Order', count: stats.Delivered || 0, color: 'bg-orange-600', icon: CheckCircle2, path: '/admin/orders?status=Delivered' },
+    { key: 'Cancelled', label: 'Cancelled Order', count: stats.Cancelled || 0, color: 'bg-red-500', icon: XCircle, path: '/admin/orders?status=Cancelled' },
+];
+
 const AdminSidebar = () => {
     const location = useLocation();
     const navigate = useNavigate();
@@ -55,18 +68,37 @@ const AdminSidebar = () => {
 
     const API_URL = API_BASE_URL;
 
+    // Order badges show only orders that arrived since the bucket was last opened.
+    const [seenCounts, setSeenCounts] = useState(readSeenCounts);
+
+    const persistSeen = (next) => {
+        setSeenCounts(next);
+        localStorage.setItem(SEEN_KEY, JSON.stringify(next));
+    };
+
     // Fetch Order Stats
     const { data: orderStats = {} } = useQuery({
         queryKey: ['orderStats'],
         queryFn: async () => {
             const res = await fetch(`${API_URL}/orders/stats`);
             if (!res.ok) throw new Error('Failed to fetch stats');
-            return res.json();
+            const stats = await res.json();
+            // Orders leave a bucket when their status changes, so drop the baseline
+            // back down; otherwise later arrivals would never count as new.
+            const seen = readSeenCounts();
+            const clamped = { ...seen };
+            bucketCounts(stats).forEach(({ key, count }) => {
+                if ((seen[key] || 0) > count) clamped[key] = count;
+            });
+            persistSeen(clamped);
+            return stats;
         },
         refetchInterval: 30000 // Refetch every 30 seconds
     });
 
     const [openSection, setOpenSection] = useState(null);
+
+    const orderBuckets = bucketCounts(orderStats);
 
     // Helpers to determine active states
     const isPathInInventory = (path) => path.startsWith('/admin/inventory');
@@ -522,15 +554,13 @@ const AdminSidebar = () => {
 
                     {openSection === 'orders' && (
                         <div className="mt-1 ml-4 pl-4 border-l border-white/10 space-y-1">
-                            {[
-                                { label: 'All Order', count: orderStats.All || 0, color: 'bg-pink-500', icon: ShoppingCart, path: '/admin/orders?status=All' },
-                                { label: 'Pending Order', count: (orderStats.Processing || 0) + (orderStats.pending || 0), color: 'bg-orange-500', icon: Clock, path: '/admin/orders?status=Processing' },
-                                { label: 'Delivered Order', count: orderStats.Delivered || 0, color: 'bg-orange-600', icon: CheckCircle2, path: '/admin/orders?status=Delivered' },
-                                { label: 'Cancelled Order', count: orderStats.Cancelled || 0, color: 'bg-red-500', icon: XCircle, path: '/admin/orders?status=Cancelled' },
-                            ].map((item, idx) => (
+                            {orderBuckets.map((item) => {
+                                const newCount = Math.max(0, item.count - (seenCounts[item.key] || 0));
+                                return (
                                 <Link
-                                    key={idx}
+                                    key={item.key}
                                     to={item.path}
+                                    onClick={() => persistSeen({ ...seenCounts, [item.key]: item.count })}
                                     className={`flex items-center justify-between px-4 py-2.5 rounded-lg transition-all text-sm group ${location.search.includes(item.path.split('?')[1]) || (item.label === 'All Order' && location.pathname === '/admin/orders' && !location.search)
                                         ? 'bg-primary/20 text-white'
                                         : 'text-gray-400 hover:bg-white/5 hover:text-white'
@@ -540,11 +570,14 @@ const AdminSidebar = () => {
                                         <item.icon size={16} />
                                         <span className="font-semibold text-xs">{item.label}</span>
                                     </div>
-                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${item.color} ${item.color.includes('text-') ? '' : 'text-white'}`}>
-                                        {item.count}
-                                    </span>
+                                    {newCount > 0 && (
+                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded text-white ${item.color}`}>
+                                            {newCount}
+                                        </span>
+                                    )}
                                 </Link>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
 
